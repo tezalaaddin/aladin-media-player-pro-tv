@@ -1,0 +1,233 @@
+import 'package:isar/isar.dart';
+import '../database/aladin_isar_service.dart';
+import '../models/aladin_category_model.dart';
+import '../models/aladin_channel_model.dart';
+import '../parsers/aladin_import_bridge.dart'; // ← was: aladin_import_bridge
+import '../parsers/aladin_xtream_parser.dart';
+import '../models/aladin_playlist_model.dart'; // Modelin olduğu dosya
+
+enum ImportProgress { idle, downloading, parsing, saving, done, error }
+
+typedef ProgressCallback = void Function(ImportProgress status, int count);
+
+class PlaylistService {
+  PlaylistService._();
+  static final PlaylistService instance = PlaylistService._();
+
+  Isar get _db => IsarService.instance.db;
+
+  // ── Read ──────────────────────────────────────────────────────────────────
+
+  /// Returns all playlists sorted newest-first (highest id first).
+  Future<List<PlaylistModel>> getAll() async {
+    final list = await _db.playlistModels.where().findAll();
+    return list.reversed.toList();
+  }
+
+  Future<PlaylistModel?> getById(int id) => _db.playlistModels.get(id);
+
+  Future<PlaylistModel?> findByUrl(String url) =>
+      _db.playlistModels.filter().urlEqualTo(url).findFirst();
+
+  Future<void> saveStub(PlaylistModel p) async =>
+      _db.writeTxn(() => _db.playlistModels.put(p));
+
+  Future<void> rename(int id, String name) async {
+    await _db.writeTxn(() async {
+      final p = await _db.playlistModels.get(id);
+      if (p != null) {
+        p.name = name;
+        await _db.playlistModels.put(p);
+      }
+    });
+  }
+
+  Future<void> delete(int id) async {
+    await _db.writeTxn(() async {
+      await _db.channelModels.filter().playlistIdEqualTo(id).deleteAll();
+      await _db.categoryModels.filter().playlistIdEqualTo(id).deleteAll();
+      await _db.playlistModels.delete(id);
+    });
+  }
+
+  // ── Import M3U ────────────────────────────────────────────────────────────
+
+  Future<PlaylistModel> importM3U({
+    required String url,
+    required String name,
+    bool isLocalFile = false,
+    ProgressCallback? onProgress,
+  }) async {
+    onProgress?.call(ImportProgress.downloading, 0);
+
+    final existing = await findByUrl(url);
+    final playlist = existing ?? PlaylistModel();
+    playlist
+      ..url = url
+      ..name = name
+      ..type = isLocalFile ? 'local' : 'm3u'
+      ..createdAt = existing?.createdAt ?? DateTime.now()
+      ..lastUpdated = DateTime.now();
+
+    late int playlistId;
+    await _db.writeTxn(() async {
+      playlistId = await _db.playlistModels.put(playlist);
+    });
+
+    if (existing != null) {
+      await _db.writeTxn(() async {
+        await _db.channelModels
+            .filter()
+            .playlistIdEqualTo(playlistId)
+            .deleteAll();
+        await _db.categoryModels
+            .filter()
+            .playlistIdEqualTo(playlistId)
+            .deleteAll();
+      });
+    }
+
+    onProgress?.call(ImportProgress.parsing, 0);
+
+    final allChannels = <ChannelModel>[];
+    int tv = 0, movie = 0, series = 0, total = 0;
+
+    final stream = isLocalFile
+        ? AladinImportBridge.instance.importFromFile(
+            url,
+            playlistId,
+            onProgress: (c) => onProgress?.call(ImportProgress.saving, c),
+          )
+        : AladinImportBridge.instance.importFromUrl(
+            url,
+            playlistId,
+            onProgress: (c) => onProgress?.call(ImportProgress.saving, c),
+          );
+
+    await for (final batch in stream) {
+      await _db.writeTxn(() => _db.channelModels.putAll(batch));
+      allChannels.addAll(batch);
+      total += batch.length;
+      for (final ch in batch) {
+        if (ch.contentType == 'tv') {
+          tv++;
+        } else if (ch.contentType == 'movie')
+          movie++;
+        else
+          series++;
+      }
+      onProgress?.call(ImportProgress.saving, total);
+    }
+
+    final cats = AladinImportBridge.buildCategories(allChannels, playlistId);
+    await _db.writeTxn(() => _db.categoryModels.putAll(cats));
+
+    await _db.writeTxn(() async {
+      final p = await _db.playlistModels.get(playlistId);
+      if (p != null) {
+        p.totalCount = total;
+        p.tvCount = tv;
+        p.movieCount = movie;
+        p.seriesCount = series;
+        await _db.playlistModels.put(p);
+      }
+    });
+
+    onProgress?.call(ImportProgress.done, total);
+    return (await _db.playlistModels.get(playlistId))!;
+  }
+
+  // ── Import Xtream ─────────────────────────────────────────────────────────
+
+  Future<PlaylistModel> importXtream({
+    required String server,
+    required String username,
+    required String password,
+    required String name,
+    ProgressCallback? onProgress,
+  }) async {
+    final parser = AladinXtreamParser(
+      server: server,
+      username: username,
+      password: password,
+    );
+    if (!await parser.validate()) {
+      throw Exception('Geçersiz Xtream kimlik bilgileri');
+    }
+
+    final url = '$server::$username';
+    final existing = await findByUrl(url);
+    final playlist = existing ?? PlaylistModel();
+    playlist
+      ..url = url
+      ..name = name
+      ..type = 'xtream'
+      ..xtreamServer = server
+      ..xtreamUsername = username
+      ..xtreamPassword = password
+      ..createdAt = existing?.createdAt ?? DateTime.now()
+      ..lastUpdated = DateTime.now();
+
+    late int playlistId;
+    await _db.writeTxn(() async {
+      playlistId = await _db.playlistModels.put(playlist);
+    });
+
+    if (existing != null) {
+      await _db.writeTxn(() async {
+        await _db.channelModels
+            .filter()
+            .playlistIdEqualTo(playlistId)
+            .deleteAll();
+        await _db.categoryModels
+            .filter()
+            .playlistIdEqualTo(playlistId)
+            .deleteAll();
+      });
+    }
+
+    final liveCats = await parser.fetchLiveCategories(playlistId);
+    final vodCats = await parser.fetchVodCategories(playlistId);
+    final seriesCats = await parser.fetchSeriesCategories(playlistId);
+    await _db.writeTxn(
+      () => _db.categoryModels.putAll([...liveCats, ...vodCats, ...seriesCats]),
+    );
+
+    int total = 0, tv = 0, movie = 0, series = 0;
+    onProgress?.call(ImportProgress.parsing, 0);
+
+    Future<void> imp(Stream<List<ChannelModel>> st) async {
+      await for (final batch in st) {
+        await _db.writeTxn(() => _db.channelModels.putAll(batch));
+        total += batch.length;
+        for (final ch in batch) {
+          if (ch.contentType == 'tv') {
+            tv++;
+          } else if (ch.contentType == 'movie')
+            movie++;
+          else
+            series++;
+        }
+        onProgress?.call(ImportProgress.saving, total);
+      }
+    }
+
+    await imp(parser.fetchLiveStreams(playlistId));
+    await imp(parser.fetchVodStreams(playlistId));
+    await imp(parser.fetchSeriesStreams(playlistId));
+
+    await _db.writeTxn(() async {
+      final p = await _db.playlistModels.get(playlistId);
+      if (p != null) {
+        p.totalCount = total;
+        p.tvCount = tv;
+        p.movieCount = movie;
+        p.seriesCount = series;
+        await _db.playlistModels.put(p);
+      }
+    });
+
+    onProgress?.call(ImportProgress.done, total);
+    return (await _db.playlistModels.get(playlistId))!;
+  }
+}

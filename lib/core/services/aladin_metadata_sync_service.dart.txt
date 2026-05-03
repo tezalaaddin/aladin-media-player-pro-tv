@@ -1,0 +1,27 @@
+// #### C. MetadataSyncService'e Pause/Resume Ekle
+// **Dosya**: `lib/core/services/aladin_metadata_sync_service.dart`
+// ```dart
+
+class MetadataSyncService extends ChangeNotifier {
+  bool _paused = false;
+  
+  bool get isPaused => _paused;
+  
+  void pauseSync() {
+    if (_paused) return;
+    _paused = true;
+    debugPrint('[METADATA] Sync paused for performance');
+  }
+  
+  void resumeSync() {
+    if (!_paused) return;
+    _paused = false;
+    debugPrint('[METADATA] Sync resumed');
+    _processQueue();
+  }
+  
+  Future<void> _processQueue() async {
+    if (_paused) return; // Paused ise çalışma
+    // ... mevcut queue processing
+  }
+}
