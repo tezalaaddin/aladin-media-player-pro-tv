@@ -28,6 +28,11 @@ subprojects {
                 // lStar hatasını tamamen bitirmek için tüm eklentileri SDK 36'ya zorla
                 compileSdkVersion(36)
                 buildToolsVersion("34.0.0")
+
+                // Namespace eksikliği hatasını çözmek için (Özellikle Isar gibi paketlerde)
+                if (namespace == null) {
+                    namespace = "com.aladin.iptv.pro." + project.name.replace(":", ".").replace("-", ".")
+                }
             }
         }
     }

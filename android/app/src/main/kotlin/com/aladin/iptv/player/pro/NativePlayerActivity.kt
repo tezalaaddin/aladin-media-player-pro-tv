@@ -1,4 +1,4 @@
-package com.example.aladin_iptv_pro
+package com.aladin.iptv.player.pro
 
 import android.content.Context
 import android.content.Intent
@@ -31,7 +31,11 @@ import java.util.ArrayList
 import java.util.Locale
 import kotlin.math.max
 import kotlin.math.min
-import com.example.aladin_iptv_pro.R
+import com.aladin.iptv.player.pro.R
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import java.net.URL
+import java.util.concurrent.Executors
 
 class NativePlayerActivity : AppCompatActivity() {
     private var player: ExoPlayer? = null
@@ -49,32 +53,59 @@ class NativePlayerActivity : AppCompatActivity() {
     private lateinit var volumeLayout: LinearLayout
     private lateinit var tvVolumeLevel: TextView
 
+    // Pause Info Layout
+    private lateinit var pauseInfoLayout: LinearLayout
+    private lateinit var ivPausePoster: ImageView
+    private lateinit var tvPauseTitle: TextView
+    private lateinit var tvPauseYear: TextView
+    private lateinit var tvPauseRating: TextView
+    private lateinit var tvPauseDescription: TextView
+
     private var channelUrls: ArrayList<String>? = null
     private var channelNames: ArrayList<String>? = null
+    private var channelDescs: ArrayList<String>? = null
+    private var channelPosters: ArrayList<String>? = null
+    private var channelRatings: ArrayList<String>? = null
+    private var channelYears: ArrayList<String>? = null
+    private var channelTypes: ArrayList<String>? = null
+    
     private var currentIndex: Int = 0
     private var retryCount = 0
     private val MAX_RETRIES = 3
 
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val executor = Executors.newSingleThreadExecutor()
     
     private val hideRunnable = Runnable { 
         channelInfoLayout.visibility = View.GONE
         volumeLayout.visibility = View.GONE
         keyGuideLayout.visibility = View.GONE
         seekBar.visibility = View.GONE
+        // pauseInfoLayout stays until play resumes
     }
 
     private val updateProgressAction = object : Runnable {
         override fun run() {
             player?.let { p ->
-                if (p.isPlaying && p.duration != C.TIME_UNSET && p.duration > 0) {
+                val duration = p.duration
+                if (duration != C.TIME_UNSET && duration > 0) {
                     val current = p.currentPosition
                     seekBar.progress = min(current, Int.MAX_VALUE.toLong()).toInt()
-                    tvTimeInfo.text = String.format(Locale.getDefault(), "%s / %s", formatTime(current), formatTime(p.duration))
+                    tvTimeInfo.text = String.format(Locale.getDefault(), "%s / %s", formatTime(current), formatTime(duration))
+                    
+                    // Progress Update to Flutter (Broadcast) - Only when playing - Every 60 seconds
+                    if (p.isPlaying && current % 60000 < 1000) {
+                        saveCurrentPosition()
+                    }
                 }
             }
             mainHandler.postDelayed(this, 1000)
         }
+    }
+
+    private val prepareRunnable = Runnable {
+        initializePlayer()
+        playCurrentChannel()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -86,6 +117,11 @@ class NativePlayerActivity : AppCompatActivity() {
         prefs = getSharedPreferences("AladinPlayerPrefs", Context.MODE_PRIVATE)
         channelUrls = intent.getStringArrayListExtra("URL_LIST")
         channelNames = intent.getStringArrayListExtra("NAME_LIST")
+        channelDescs = intent.getStringArrayListExtra("DESC_LIST")
+        channelPosters = intent.getStringArrayListExtra("POSTER_LIST")
+        channelRatings = intent.getStringArrayListExtra("RATING_LIST")
+        channelYears = intent.getStringArrayListExtra("YEAR_LIST")
+        channelTypes = intent.getStringArrayListExtra("TYPE_LIST")
         currentIndex = intent.getIntExtra("CURRENT_INDEX", 0)
 
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -99,29 +135,35 @@ class NativePlayerActivity : AppCompatActivity() {
         volumeLayout = findViewById(R.id.volume_layout)
         tvVolumeLevel = findViewById(R.id.tv_volume_level)
 
-        // REALTEK İÇİN KRİTİK: İçeriği temizle ki dekoder kilitlenmesin
-        // playerView.setKeepContentOnPlayerReset(false)
-        // playerView.setShutterBackgroundColor(android.graphics.Color.BLACK)
+        pauseInfoLayout = findViewById(R.id.pause_info_layout)
+        ivPausePoster = findViewById(R.id.iv_pause_poster)
+        tvPauseTitle = findViewById(R.id.tv_pause_title)
+        tvPauseYear = findViewById(R.id.tv_pause_year)
+        tvPauseRating = findViewById(R.id.tv_pause_rating)
+        tvPauseDescription = findViewById(R.id.tv_pause_description)
 
         prepareAndPlay()
     }
 
     private fun prepareAndPlay() {
+        mainHandler.removeCallbacks(prepareRunnable)
         releasePlayer()
         
-        // REALTEK HARD RESET: Donanımın kendini toparlaması için 500ms bekle
         showStatus("Yükleniyor...")
-        mainHandler.postDelayed({
-            System.gc() // RAM temizliği zorla
-            initializePlayer()
-            playCurrentChannel()
-        }, 500)
+        pauseInfoLayout.visibility = View.GONE
+        
+        // DEBOUNCE & REALTEK RESET
+        mainHandler.postDelayed(prepareRunnable, 500)
     }
 
     private fun initializePlayer() {
+        if (player != null) return // Already initialized
+
         val renderersFactory = DefaultRenderersFactory(this)
-            .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
-            .setEnableDecoderFallback(true) // Donanım (Realtek) çökerse yazılıma geç
+            // PREFER: Hardware decoder önce denenir; başarısız olursa software'e düşer.
+            // ON yerine PREFER kullanmak Realtek chipsetlerde daha güvenli bir fallback sağlar.
+            .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+            .setEnableDecoderFallback(true)
 
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(15000, 50000, 1500, 3000)
@@ -129,8 +171,7 @@ class NativePlayerActivity : AppCompatActivity() {
 
         trackSelector = DefaultTrackSelector(this)
         trackSelector.parameters = trackSelector.buildUponParameters()
-            .setMaxVideoSizeSd() // Realtek CPU yükünü azalt
-            .setForceLowestBitrate(false)
+            .setMaxVideoSizeSd()
             .build()
 
         player = ExoPlayer.Builder(this, renderersFactory)
@@ -144,7 +185,6 @@ class NativePlayerActivity : AppCompatActivity() {
 
         player?.addListener(object : Player.Listener {
             override fun onPlayerError(error: PlaybackException) {
-                Log.e("ALADIN", "Realtek Hata: ${error.errorCodeName}")
                 if (retryCount < MAX_RETRIES) {
                     retryCount++
                     mainHandler.postDelayed({ prepareAndPlay() }, 2000)
@@ -164,6 +204,14 @@ class NativePlayerActivity : AppCompatActivity() {
                     }
                 }
             }
+
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                if (!isPlaying && player?.playbackState != Player.STATE_BUFFERING) {
+                    updatePauseInfo()
+                } else {
+                    pauseInfoLayout.visibility = View.GONE
+                }
+            }
         })
     }
 
@@ -179,12 +227,54 @@ class NativePlayerActivity : AppCompatActivity() {
         player?.prepare()
         
         val savedPos = prefs.getLong("pos_$url", 0L)
-        if (savedPos > 0 && player?.duration != C.TIME_UNSET) {
+        if (savedPos > 0) {
             player?.seekTo(savedPos)
         }
         
         player?.play()
         showOSD()
+    }
+
+    private fun updatePauseInfo() {
+        val type = channelTypes?.getOrNull(currentIndex) ?: "tv"
+        if (type == "tv") {
+            pauseInfoLayout.visibility = View.GONE
+            return
+        }
+
+        val name = channelNames?.getOrNull(currentIndex) ?: ""
+        val desc = channelDescs?.getOrNull(currentIndex) ?: ""
+        val poster = channelPosters?.getOrNull(currentIndex) ?: ""
+        val rating = channelRatings?.getOrNull(currentIndex) ?: ""
+        val year = channelYears?.getOrNull(currentIndex) ?: ""
+
+        tvPauseTitle.text = name
+        tvPauseDescription.text = desc
+        tvPauseRating.text = if (rating.isNotEmpty()) "⭐ $rating/10" else ""
+        tvPauseYear.text = year
+        
+        if (poster.isNotEmpty()) {
+            ivPausePoster.visibility = View.VISIBLE
+            loadPoster(poster)
+        } else {
+            ivPausePoster.visibility = View.GONE
+        }
+        
+        pauseInfoLayout.visibility = View.VISIBLE
+    }
+
+    private fun loadPoster(posterUrl: String) {
+        executor.execute {
+            try {
+                val inputStream = URL(posterUrl).openStream()
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+                mainHandler.post {
+                    ivPausePoster.setImageBitmap(bitmap)
+                }
+            } catch (e: Exception) {
+                Log.e("ALADIN", "Poster Load Error: $e")
+            }
+        }
     }
 
     private fun nextChannelOnError() {
@@ -200,36 +290,32 @@ class NativePlayerActivity : AppCompatActivity() {
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         when (keyCode) {
             KeyEvent.KEYCODE_DPAD_UP -> { 
-                saveCurrentPosition()
                 if (currentIndex > 0) { currentIndex--; prepareAndPlay() }
                 return true
             }
             KeyEvent.KEYCODE_DPAD_DOWN -> { 
-                saveCurrentPosition()
                 val size = channelUrls?.size ?: 1
                 if (currentIndex < size - 1) { currentIndex++; prepareAndPlay() }
                 return true
             }
             KeyEvent.KEYCODE_DPAD_RIGHT -> { 
                 player?.let { p ->
-                    val isLive = p.duration == C.TIME_UNSET
-                    if (isLive) {
+                    if (p.duration == C.TIME_UNSET) {
                         audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE, 0); showVolume()
                     } else {
-                        val safePos = min(p.currentPosition + 15000, p.duration)
-                        p.seekTo(safePos); showOSD(); showStatus("15sn >>")
+                        val safePos = min(p.currentPosition + 30000, p.duration)
+                        p.seekTo(safePos); showOSD(); showStatus("30sn >>")
                     }
                 }
                 return true
             }
             KeyEvent.KEYCODE_DPAD_LEFT -> { 
                 player?.let { p ->
-                    val isLive = p.duration == C.TIME_UNSET
-                    if (isLive) {
+                    if (p.duration == C.TIME_UNSET) {
                         audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER, 0); showVolume()
                     } else {
-                        val safePos = max(p.currentPosition - 5000, 0L)
-                        p.seekTo(safePos); showOSD(); showStatus("<< 5sn")
+                        val safePos = max(p.currentPosition - 10000, 0L)
+                        p.seekTo(safePos); showOSD(); showStatus("<< 10sn")
                     }
                 }
                 return true
@@ -241,8 +327,8 @@ class NativePlayerActivity : AppCompatActivity() {
             KeyEvent.KEYCODE_0, KeyEvent.KEYCODE_NUMPAD_0 -> { toggleFavorite(); return true }
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
                 player?.let { p ->
-                    if (p.isPlaying) { p.pause(); showOSD(); showStatus("Duraklatıldı") }
-                    else { p.play(); showOSD(); showStatus("Oynatılıyor") }
+                    if (p.isPlaying) { p.pause(); showOSD() }
+                    else { p.play(); showOSD() }
                 }
                 return true
             }
@@ -263,7 +349,7 @@ class NativePlayerActivity : AppCompatActivity() {
         updateFavoriteIcon(url)
         showStatus(if (newFavStatus) "Favorilere Eklendi" else "Favorilerden Çıkarıldı")
 
-        val intent = Intent("com.example.aladin.FAVORITE_TOGGLED")
+        val intent = Intent("com.aladin.iptv.player.pro.FAVORITE_TOGGLED")
         intent.putExtra("url", url)
         intent.putExtra("isFavorite", newFavStatus)
         sendBroadcast(intent)
@@ -277,9 +363,17 @@ class NativePlayerActivity : AppCompatActivity() {
     private fun saveCurrentPosition() {
         val url = channelUrls?.getOrNull(currentIndex) ?: return
         player?.let { p ->
-            val isLive = p.duration == C.TIME_UNSET
-            if (!isLive && p.duration > 0) {
-                prefs.edit().putLong("pos_$url", p.currentPosition).apply()
+            val duration = p.duration
+            if (duration != C.TIME_UNSET && duration > 0) {
+                val pos = p.currentPosition
+                prefs.edit().putLong("pos_$url", pos).apply()
+                
+                // Broadcast for Flutter to save to DB (Continue Watching)
+                val intent = Intent("com.aladin.iptv.player.pro.PROGRESS_UPDATE")
+                intent.putExtra("url", url)
+                intent.putExtra("position", pos)
+                intent.putExtra("duration", duration)
+                sendBroadcast(intent)
             }
         }
     }
@@ -352,16 +446,21 @@ class NativePlayerActivity : AppCompatActivity() {
 
     private fun formatTime(ms: Long): String {
         val totalSecs = ms / 1000
+        val hours = totalSecs / 3600
         val mins = (totalSecs % 3600) / 60
         val secs = totalSecs % 60
-        return String.format(Locale.getDefault(), "%02d:%02d", mins, secs)
+        return if (hours > 0) {
+            String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, mins, secs)
+        } else {
+            String.format(Locale.getDefault(), "%02d:%02d", mins, secs)
+        }
     }
 
     private fun showOSD() {
         channelInfoLayout.visibility = View.VISIBLE
         keyGuideLayout.visibility = View.VISIBLE
         player?.let { p ->
-            if (p.duration != C.TIME_UNSET) seekBar.visibility = View.VISIBLE
+            if (p.duration != C.TIME_UNSET && p.duration > 0) seekBar.visibility = View.VISIBLE
             else seekBar.visibility = View.GONE
             tvTimeInfo.visibility = View.VISIBLE
         }
@@ -388,8 +487,6 @@ class NativePlayerActivity : AppCompatActivity() {
     }
 
     private fun releasePlayer() {
-        mainHandler.removeCallbacks(updateProgressAction)
-        mainHandler.removeCallbacks(hideRunnable)
         player?.let { p ->
             p.stop()
             p.clearMediaItems()
@@ -414,5 +511,6 @@ class NativePlayerActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         releasePlayer()
+        executor.shutdown()
     }
 }

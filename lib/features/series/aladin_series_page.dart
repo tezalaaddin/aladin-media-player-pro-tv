@@ -2,9 +2,11 @@ import '../../core/models/aladin_category_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/models/aladin_channel_model.dart';
+import '../../core/models/aladin_playlist_model.dart';
 import '../../core/services/aladin_channel_service.dart';
 import '../../core/services/aladin_tmdb_service.dart';
 import '../../core/state/aladin_app_state.dart';
+import '../../core/parsers/aladin_xtream_parser.dart';
 import '../../shared/theme/aladin_app_theme.dart';
 import '../../shared/widgets/aladin_app_bar.dart';
 import '../../shared/widgets/aladin_category_row.dart';
@@ -14,8 +16,15 @@ import '../player/aladin_player_page.dart';
 class AladinSeriesDetailPage extends StatefulWidget {
   final String seriesName;
   final int playlistId;
-  const AladinSeriesDetailPage(
-      {super.key, required this.seriesName, required this.playlistId});
+  final String? seriesId;
+  final PlaylistModel? playlistModel;
+  const AladinSeriesDetailPage({
+    super.key,
+    required this.seriesName,
+    required this.playlistId,
+    this.seriesId,
+    this.playlistModel,
+  });
   @override
   State<AladinSeriesDetailPage> createState() => _AladinSeriesDetailPageState();
 }
@@ -34,11 +43,42 @@ class _AladinSeriesDetailPageState extends State<AladinSeriesDetailPage> {
   }
 
   Future<void> _load() async {
-    final eps = await ChannelService.instance
+    var eps = await ChannelService.instance
         .getSeriesEpisodes(widget.playlistId, widget.seriesName);
+
+    // Xtream için on-demand episode fetch
+    // Eğer liste boşsa veya sadece URL'si boş olan "ana seri kaydı" varsa bölümleri çek
+    final onlyMainEntry = eps.length == 1 && eps.first.url.isEmpty;
+
+    if ((eps.isEmpty || onlyMainEntry) && widget.seriesId != null) {
+      final state = context.read<AppState>();
+      final p = state.active;
+      if (p != null && p.type == 'xtream') {
+        final parser = AladinXtreamParser(
+          server: p.xtreamServer ?? '',
+          username: p.xtreamUsername ?? '',
+          password: p.xtreamPassword ?? '',
+        );
+        // Önce bölümleri çek
+        final remoteEps = await parser.fetchSeriesEpisodes(
+          widget.seriesId!,
+          widget.playlistId,
+          'Series',
+        );
+        if (remoteEps.isNotEmpty) {
+          await ChannelService.instance.saveChannels(remoteEps);
+          // Veritabanından güncel halini tekrar çek
+          eps = await ChannelService.instance
+              .getSeriesEpisodes(widget.playlistId, widget.seriesName);
+        }
+      }
+    }
+
     if (!mounted) return;
     setState(() {
-      _eps = eps;
+      // Sadece oynatılabilir (URL'si olan) bölümleri listeye al
+      _eps = eps.where((e) => e.url.isNotEmpty).toList();
+      // Bilgi paneli için (afiş vs) ilk kaydı (ana kayıt da olabilir) kullan
       _rep = eps.isNotEmpty ? eps.first : null;
       _loading = false;
     });
@@ -260,6 +300,7 @@ class SeriesPage extends StatefulWidget {
 class _SeriesPageState extends State<SeriesPage> {
   List<CategoryModel> _categories = [];
   List<ChannelModel> _favorites = [];
+  List<ChannelModel> _continueWatching = [];
   bool _loading = false;
   int? _loadedId;
 
@@ -297,10 +338,14 @@ class _SeriesPageState extends State<SeriesPage> {
     final allFavs = await ChannelService.instance.getFavorites(id);
     final seriesFavs = allFavs.where((c) => c.contentType == 'series').toList();
 
+    final cw = await ChannelService.instance.getContinueWatching(id);
+    final seriesCW = cw.where((c) => c.contentType == 'series').toList();
+
     if (!mounted) return;
     setState(() {
       _categories = cats;
       _favorites = seriesFavs;
+      _continueWatching = seriesCW;
       _loading = false;
     });
   }
@@ -314,6 +359,8 @@ class _SeriesPageState extends State<SeriesPage> {
         builder: (_) => AladinSeriesDetailPage(
           seriesName: name,
           playlistId: playlistId,
+          seriesId: ch.parentSeriesId ?? ch.tvgId,
+          playlistModel: context.read<AppState>().active,
         ),
       ),
     );
@@ -324,17 +371,33 @@ class _SeriesPageState extends State<SeriesPage> {
     return Consumer<AppState>(builder: (_, state, __) {
       final s = state.s;
       final noList = state.active == null;
+      
+      if (noList) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                s.addPlaylistHint,
+                style: const TextStyle(color: AppTheme.textSecondary),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () {}, 
+                autofocus: true,
+                icon: const Icon(Icons.settings),
+                label: Text(s.goToSettings),
+              ),
+            ],
+          ));
+      }
+
       return Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AladinAppBar(
             onRefresh:
                 state.active != null ? () => _load(state.active!.id) : null),
-        body: noList
-            ? Center(
-                child: Text(
-                    s.addPlaylistHint,
-                    style: const TextStyle(color: AppTheme.textSecondary)))
-            : _loading && _categories.isEmpty
+        body: _loading && _categories.isEmpty
                 ? const Center(
                     child: CircularProgressIndicator(color: AppTheme.accent))
                 : _categories.isEmpty
@@ -351,6 +414,7 @@ class _SeriesPageState extends State<SeriesPage> {
                             const SizedBox(height: 16),
                             ElevatedButton.icon(
                                 onPressed: () => _load(state.active!.id),
+                                autofocus: true,
                                 icon: const Icon(Icons.refresh),
                                 label: Text(s.retry)),
                           ]))
@@ -363,6 +427,12 @@ class _SeriesPageState extends State<SeriesPage> {
                               ),
                               sliver: SliverList(
                                 delegate: SliverChildListDelegate([
+                                  if (_continueWatching.isNotEmpty)
+                                    _SeriesFavStrip(
+                                      title: '⏳ ${state.s.continueWatching ?? "İzlemeye Devam Et"}',
+                                      channels: _continueWatching,
+                                      onTap: (ch) => _onSeriesTap(ch, state.active!.id),
+                                    ),
                                   if (_favorites.isNotEmpty)
                                     _SeriesFavStrip(
                                       title: '⭐ ${state.s.favorites}',

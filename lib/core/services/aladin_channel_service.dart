@@ -122,6 +122,34 @@ class ChannelService {
     });
   }
 
+  Future<void> updateProgressByUrl(String url, int seconds, int totalSeconds) async {
+    await _db.writeTxn(() async {
+      final matches = await _db.channelModels.filter().urlEqualTo(url).findAll();
+      for (final ch in matches) {
+        ch.lastWatched = DateTime.now();
+        ch.watchedSeconds = seconds;
+        ch.totalDurationSeconds = totalSeconds;
+        await _db.channelModels.put(ch);
+      }
+    });
+  }
+
+  /// Returns items that are partially watched (between 1% and 90%)
+  Future<List<ChannelModel>> getContinueWatching(int playlistId, {int limit = 20}) async {
+    final all = await _db.channelModels
+        .filter()
+        .playlistIdEqualTo(playlistId)
+        .lastWatchedIsNotNull()
+        .sortByLastWatchedDesc()
+        .findAll();
+
+    return all.where((ch) {
+      if (ch.totalDurationSeconds <= 0) return false;
+      final percent = (ch.watchedSeconds / ch.totalDurationSeconds) * 100;
+      return percent >= 5 && percent <= 90;
+    }).take(limit).toList();
+  }
+
   // ── Search ─────────────────────────────────────────────────────────────────
 
   Future<ChannelModel?> getById(int id) => _db.channelModels.get(id);
@@ -209,6 +237,47 @@ class ChannelService {
     debugPrint('[EPG] getTvgIds: ${ids.length} ids for playlist $playlistId');
     debugPrint('[EPG] sample tvgIds: ${ids.take(20).toList()}');
     return ids;
+  }
+
+  Future<void> saveChannels(List<ChannelModel> channels) async {
+    await _db.writeTxn(() => _db.channelModels.putAll(channels));
+  }
+
+  /// Xtream import sonrası kategori kanal sayılarını veritabanından hesaplayıp günceller
+  Future<void> updateCategoryCountsForPlaylist(int playlistId) async {
+    await _db.writeTxn(() async {
+      final cats = await _db.categoryModels.filter().playlistIdEqualTo(playlistId).findAll();
+      for (var cat in cats) {
+        int count = 0;
+        if (cat.contentType == 'series') {
+          // Diziler için unique seriesName sayıyoruz
+          final allSeries = await _db.channelModels
+              .filter()
+              .playlistIdEqualTo(playlistId)
+              .and()
+              .categoryNameEqualTo(cat.name)
+              .and()
+              .contentTypeEqualTo('series')
+              .findAll();
+          final seen = <String>{};
+          for (var s in allSeries) {
+            seen.add(s.seriesName?.toLowerCase() ?? s.name.toLowerCase());
+          }
+          count = seen.length;
+        } else {
+          count = await _db.channelModels
+              .filter()
+              .playlistIdEqualTo(playlistId)
+              .and()
+              .categoryNameEqualTo(cat.name)
+              .and()
+              .contentTypeEqualTo(cat.contentType)
+              .count();
+        }
+        cat.channelCount = count;
+        await _db.categoryModels.put(cat);
+      }
+    });
   }
 
   // ── TMDB ───────────────────────────────────────────────────────────────────

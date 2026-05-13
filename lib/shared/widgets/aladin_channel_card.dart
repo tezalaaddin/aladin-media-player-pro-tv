@@ -76,8 +76,8 @@ class _ChannelCardState extends State<ChannelCard> {
     final year = widget.channel.tmdbYear;
     final cleanName = _cleanName;
     
-    final double progress = widget.channel.watchedSeconds > 0 
-        ? (widget.channel.watchedSeconds / 7200).clamp(0.01, 1.0) 
+    final double progress = widget.channel.totalDurationSeconds > 0 
+        ? (widget.channel.watchedSeconds / widget.channel.totalDurationSeconds).clamp(0.01, 1.0)
         : 0.0;
 
     return Focus(
@@ -219,8 +219,12 @@ class _ChannelCardState extends State<ChannelCard> {
         httpHeaders: _kHeaders,
         fit: fit,
         memCacheWidth: 250, memCacheHeight: 350,
-        placeholder: (_, __) => githubUrl != null ? _img(githubUrl, fit) : _placeholder(color),
-        errorWidget: (_, __, ___) => githubUrl != null ? _img(githubUrl, fit) : _placeholder(color),
+        placeholder: (_, __) => _placeholder(color),
+        errorWidget: (_, __, ___) {
+          if (vodUrl != null && vodUrl.isNotEmpty) return _img(vodUrl, BoxFit.cover);
+          if (githubUrl != null) return _img(githubUrl, fit);
+          return _placeholder(color);
+        },
       );
     } else if (vodUrl != null && vodUrl.isNotEmpty) {
       imageWidget = _img(vodUrl, BoxFit.cover);

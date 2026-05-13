@@ -42,113 +42,133 @@ const ChannelModelSchema = CollectionSchema(
       name: r'episode',
       type: IsarType.long,
     ),
-    r'groupTitle': PropertySchema(
+    r'episodesFetchedAt': PropertySchema(
       id: 5,
+      name: r'episodesFetchedAt',
+      type: IsarType.dateTime,
+    ),
+    r'groupTitle': PropertySchema(
+      id: 6,
       name: r'groupTitle',
       type: IsarType.string,
     ),
     r'imdbRating': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'imdbRating',
       type: IsarType.string,
     ),
     r'isFavorite': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'isFavorite',
       type: IsarType.bool,
     ),
     r'language': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'language',
       type: IsarType.string,
     ),
     r'lastWatched': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'lastWatched',
       type: IsarType.dateTime,
     ),
     r'logoUrl': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'logoUrl',
       type: IsarType.string,
     ),
     r'name': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'name',
       type: IsarType.string,
     ),
+    r'parentSeriesId': PropertySchema(
+      id: 13,
+      name: r'parentSeriesId',
+      type: IsarType.string,
+    ),
     r'playlistId': PropertySchema(
-      id: 12,
+      id: 14,
       name: r'playlistId',
       type: IsarType.long,
     ),
     r'quality': PropertySchema(
-      id: 13,
+      id: 15,
       name: r'quality',
       type: IsarType.string,
     ),
     r'season': PropertySchema(
-      id: 14,
+      id: 16,
       name: r'season',
       type: IsarType.long,
     ),
     r'seriesName': PropertySchema(
-      id: 15,
+      id: 17,
       name: r'seriesName',
       type: IsarType.string,
     ),
+    r'shouldRefetchEpisodes': PropertySchema(
+      id: 18,
+      name: r'shouldRefetchEpisodes',
+      type: IsarType.bool,
+    ),
     r'sortOrder': PropertySchema(
-      id: 16,
+      id: 19,
       name: r'sortOrder',
       type: IsarType.long,
     ),
     r'streamHeaders': PropertySchema(
-      id: 17,
+      id: 20,
       name: r'streamHeaders',
       type: IsarType.string,
     ),
     r'streamPlatform': PropertySchema(
-      id: 18,
+      id: 21,
       name: r'streamPlatform',
       type: IsarType.string,
     ),
     r'tmdbId': PropertySchema(
-      id: 19,
+      id: 22,
       name: r'tmdbId',
       type: IsarType.string,
     ),
     r'tmdbOverview': PropertySchema(
-      id: 20,
+      id: 23,
       name: r'tmdbOverview',
       type: IsarType.string,
     ),
     r'tmdbPoster': PropertySchema(
-      id: 21,
+      id: 24,
       name: r'tmdbPoster',
       type: IsarType.string,
     ),
     r'tmdbYear': PropertySchema(
-      id: 22,
+      id: 25,
       name: r'tmdbYear',
       type: IsarType.string,
     ),
+    r'totalDurationSeconds': PropertySchema(
+      id: 26,
+      name: r'totalDurationSeconds',
+      type: IsarType.long,
+    ),
     r'tvgId': PropertySchema(
-      id: 23,
+      id: 27,
       name: r'tvgId',
       type: IsarType.string,
     ),
     r'tvgName': PropertySchema(
-      id: 24,
+      id: 28,
       name: r'tvgName',
       type: IsarType.string,
     ),
     r'url': PropertySchema(
-      id: 25,
+      id: 29,
       name: r'url',
       type: IsarType.string,
     ),
     r'watchedSeconds': PropertySchema(
-      id: 26,
+      id: 30,
       name: r'watchedSeconds',
       type: IsarType.long,
     )
@@ -253,6 +273,12 @@ int _channelModelEstimateSize(
   }
   bytesCount += 3 + object.name.length * 3;
   {
+    final value = object.parentSeriesId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.quality;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -327,28 +353,32 @@ void _channelModelSerialize(
   writer.writeString(offsets[2], object.country);
   writer.writeString(offsets[3], object.epgLogoUrl);
   writer.writeLong(offsets[4], object.episode);
-  writer.writeString(offsets[5], object.groupTitle);
-  writer.writeString(offsets[6], object.imdbRating);
-  writer.writeBool(offsets[7], object.isFavorite);
-  writer.writeString(offsets[8], object.language);
-  writer.writeDateTime(offsets[9], object.lastWatched);
-  writer.writeString(offsets[10], object.logoUrl);
-  writer.writeString(offsets[11], object.name);
-  writer.writeLong(offsets[12], object.playlistId);
-  writer.writeString(offsets[13], object.quality);
-  writer.writeLong(offsets[14], object.season);
-  writer.writeString(offsets[15], object.seriesName);
-  writer.writeLong(offsets[16], object.sortOrder);
-  writer.writeString(offsets[17], object.streamHeaders);
-  writer.writeString(offsets[18], object.streamPlatform);
-  writer.writeString(offsets[19], object.tmdbId);
-  writer.writeString(offsets[20], object.tmdbOverview);
-  writer.writeString(offsets[21], object.tmdbPoster);
-  writer.writeString(offsets[22], object.tmdbYear);
-  writer.writeString(offsets[23], object.tvgId);
-  writer.writeString(offsets[24], object.tvgName);
-  writer.writeString(offsets[25], object.url);
-  writer.writeLong(offsets[26], object.watchedSeconds);
+  writer.writeDateTime(offsets[5], object.episodesFetchedAt);
+  writer.writeString(offsets[6], object.groupTitle);
+  writer.writeString(offsets[7], object.imdbRating);
+  writer.writeBool(offsets[8], object.isFavorite);
+  writer.writeString(offsets[9], object.language);
+  writer.writeDateTime(offsets[10], object.lastWatched);
+  writer.writeString(offsets[11], object.logoUrl);
+  writer.writeString(offsets[12], object.name);
+  writer.writeString(offsets[13], object.parentSeriesId);
+  writer.writeLong(offsets[14], object.playlistId);
+  writer.writeString(offsets[15], object.quality);
+  writer.writeLong(offsets[16], object.season);
+  writer.writeString(offsets[17], object.seriesName);
+  writer.writeBool(offsets[18], object.shouldRefetchEpisodes);
+  writer.writeLong(offsets[19], object.sortOrder);
+  writer.writeString(offsets[20], object.streamHeaders);
+  writer.writeString(offsets[21], object.streamPlatform);
+  writer.writeString(offsets[22], object.tmdbId);
+  writer.writeString(offsets[23], object.tmdbOverview);
+  writer.writeString(offsets[24], object.tmdbPoster);
+  writer.writeString(offsets[25], object.tmdbYear);
+  writer.writeLong(offsets[26], object.totalDurationSeconds);
+  writer.writeString(offsets[27], object.tvgId);
+  writer.writeString(offsets[28], object.tvgName);
+  writer.writeString(offsets[29], object.url);
+  writer.writeLong(offsets[30], object.watchedSeconds);
 }
 
 ChannelModel _channelModelDeserialize(
@@ -363,29 +393,32 @@ ChannelModel _channelModelDeserialize(
   object.country = reader.readStringOrNull(offsets[2]);
   object.epgLogoUrl = reader.readStringOrNull(offsets[3]);
   object.episode = reader.readLongOrNull(offsets[4]);
-  object.groupTitle = reader.readStringOrNull(offsets[5]);
+  object.episodesFetchedAt = reader.readDateTimeOrNull(offsets[5]);
+  object.groupTitle = reader.readStringOrNull(offsets[6]);
   object.id = id;
-  object.imdbRating = reader.readStringOrNull(offsets[6]);
-  object.isFavorite = reader.readBool(offsets[7]);
-  object.language = reader.readStringOrNull(offsets[8]);
-  object.lastWatched = reader.readDateTimeOrNull(offsets[9]);
-  object.logoUrl = reader.readStringOrNull(offsets[10]);
-  object.name = reader.readString(offsets[11]);
-  object.playlistId = reader.readLong(offsets[12]);
-  object.quality = reader.readStringOrNull(offsets[13]);
-  object.season = reader.readLongOrNull(offsets[14]);
-  object.seriesName = reader.readStringOrNull(offsets[15]);
-  object.sortOrder = reader.readLong(offsets[16]);
-  object.streamHeaders = reader.readStringOrNull(offsets[17]);
-  object.streamPlatform = reader.readStringOrNull(offsets[18]);
-  object.tmdbId = reader.readStringOrNull(offsets[19]);
-  object.tmdbOverview = reader.readStringOrNull(offsets[20]);
-  object.tmdbPoster = reader.readStringOrNull(offsets[21]);
-  object.tmdbYear = reader.readStringOrNull(offsets[22]);
-  object.tvgId = reader.readStringOrNull(offsets[23]);
-  object.tvgName = reader.readStringOrNull(offsets[24]);
-  object.url = reader.readString(offsets[25]);
-  object.watchedSeconds = reader.readLong(offsets[26]);
+  object.imdbRating = reader.readStringOrNull(offsets[7]);
+  object.isFavorite = reader.readBool(offsets[8]);
+  object.language = reader.readStringOrNull(offsets[9]);
+  object.lastWatched = reader.readDateTimeOrNull(offsets[10]);
+  object.logoUrl = reader.readStringOrNull(offsets[11]);
+  object.name = reader.readString(offsets[12]);
+  object.parentSeriesId = reader.readStringOrNull(offsets[13]);
+  object.playlistId = reader.readLong(offsets[14]);
+  object.quality = reader.readStringOrNull(offsets[15]);
+  object.season = reader.readLongOrNull(offsets[16]);
+  object.seriesName = reader.readStringOrNull(offsets[17]);
+  object.sortOrder = reader.readLong(offsets[19]);
+  object.streamHeaders = reader.readStringOrNull(offsets[20]);
+  object.streamPlatform = reader.readStringOrNull(offsets[21]);
+  object.tmdbId = reader.readStringOrNull(offsets[22]);
+  object.tmdbOverview = reader.readStringOrNull(offsets[23]);
+  object.tmdbPoster = reader.readStringOrNull(offsets[24]);
+  object.tmdbYear = reader.readStringOrNull(offsets[25]);
+  object.totalDurationSeconds = reader.readLong(offsets[26]);
+  object.tvgId = reader.readStringOrNull(offsets[27]);
+  object.tvgName = reader.readStringOrNull(offsets[28]);
+  object.url = reader.readString(offsets[29]);
+  object.watchedSeconds = reader.readLong(offsets[30]);
   return object;
 }
 
@@ -407,35 +440,35 @@ P _channelModelDeserializeProp<P>(
     case 4:
       return (reader.readLongOrNull(offset)) as P;
     case 5:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 6:
       return (reader.readStringOrNull(offset)) as P;
     case 7:
-      return (reader.readBool(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 8:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 9:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 10:
       return (reader.readStringOrNull(offset)) as P;
+    case 10:
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 11:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 12:
-      return (reader.readLong(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 13:
       return (reader.readStringOrNull(offset)) as P;
     case 14:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 15:
       return (reader.readStringOrNull(offset)) as P;
     case 16:
-      return (reader.readLong(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 17:
       return (reader.readStringOrNull(offset)) as P;
     case 18:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 19:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 20:
       return (reader.readStringOrNull(offset)) as P;
     case 21:
@@ -447,8 +480,16 @@ P _channelModelDeserializeProp<P>(
     case 24:
       return (reader.readStringOrNull(offset)) as P;
     case 25:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 26:
+      return (reader.readLong(offset)) as P;
+    case 27:
+      return (reader.readStringOrNull(offset)) as P;
+    case 28:
+      return (reader.readStringOrNull(offset)) as P;
+    case 29:
+      return (reader.readString(offset)) as P;
+    case 30:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1394,6 +1435,80 @@ extension ChannelModelQueryFilter
   }
 
   QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
+      episodesFetchedAtIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'episodesFetchedAt',
+      ));
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
+      episodesFetchedAtIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'episodesFetchedAt',
+      ));
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
+      episodesFetchedAtEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'episodesFetchedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
+      episodesFetchedAtGreaterThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'episodesFetchedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
+      episodesFetchedAtLessThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'episodesFetchedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
+      episodesFetchedAtBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'episodesFetchedAt',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
       groupTitleIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -2281,6 +2396,160 @@ extension ChannelModelQueryFilter
   }
 
   QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
+      parentSeriesIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'parentSeriesId',
+      ));
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
+      parentSeriesIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'parentSeriesId',
+      ));
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
+      parentSeriesIdEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'parentSeriesId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
+      parentSeriesIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'parentSeriesId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
+      parentSeriesIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'parentSeriesId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
+      parentSeriesIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'parentSeriesId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
+      parentSeriesIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'parentSeriesId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
+      parentSeriesIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'parentSeriesId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
+      parentSeriesIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'parentSeriesId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
+      parentSeriesIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'parentSeriesId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
+      parentSeriesIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'parentSeriesId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
+      parentSeriesIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'parentSeriesId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
       playlistIdEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -2713,6 +2982,16 @@ extension ChannelModelQueryFilter
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'seriesName',
         value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
+      shouldRefetchEpisodesEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'shouldRefetchEpisodes',
+        value: value,
       ));
     });
   }
@@ -3697,6 +3976,62 @@ extension ChannelModelQueryFilter
   }
 
   QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
+      totalDurationSecondsEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'totalDurationSeconds',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
+      totalDurationSecondsGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'totalDurationSeconds',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
+      totalDurationSecondsLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'totalDurationSeconds',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
+      totalDurationSecondsBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'totalDurationSeconds',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
       tvgIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -4262,6 +4597,20 @@ extension ChannelModelQuerySortBy
     });
   }
 
+  QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy>
+      sortByEpisodesFetchedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'episodesFetchedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy>
+      sortByEpisodesFetchedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'episodesFetchedAt', Sort.desc);
+    });
+  }
+
   QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy> sortByGroupTitle() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'groupTitle', Sort.asc);
@@ -4350,6 +4699,20 @@ extension ChannelModelQuerySortBy
     });
   }
 
+  QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy>
+      sortByParentSeriesId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'parentSeriesId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy>
+      sortByParentSeriesIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'parentSeriesId', Sort.desc);
+    });
+  }
+
   QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy> sortByPlaylistId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'playlistId', Sort.asc);
@@ -4397,6 +4760,20 @@ extension ChannelModelQuerySortBy
       sortBySeriesNameDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'seriesName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy>
+      sortByShouldRefetchEpisodes() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'shouldRefetchEpisodes', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy>
+      sortByShouldRefetchEpisodesDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'shouldRefetchEpisodes', Sort.desc);
     });
   }
 
@@ -4486,6 +4863,20 @@ extension ChannelModelQuerySortBy
   QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy> sortByTmdbYearDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'tmdbYear', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy>
+      sortByTotalDurationSeconds() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'totalDurationSeconds', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy>
+      sortByTotalDurationSecondsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'totalDurationSeconds', Sort.desc);
     });
   }
 
@@ -4605,6 +4996,20 @@ extension ChannelModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy>
+      thenByEpisodesFetchedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'episodesFetchedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy>
+      thenByEpisodesFetchedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'episodesFetchedAt', Sort.desc);
+    });
+  }
+
   QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy> thenByGroupTitle() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'groupTitle', Sort.asc);
@@ -4705,6 +5110,20 @@ extension ChannelModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy>
+      thenByParentSeriesId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'parentSeriesId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy>
+      thenByParentSeriesIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'parentSeriesId', Sort.desc);
+    });
+  }
+
   QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy> thenByPlaylistId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'playlistId', Sort.asc);
@@ -4752,6 +5171,20 @@ extension ChannelModelQuerySortThenBy
       thenBySeriesNameDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'seriesName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy>
+      thenByShouldRefetchEpisodes() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'shouldRefetchEpisodes', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy>
+      thenByShouldRefetchEpisodesDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'shouldRefetchEpisodes', Sort.desc);
     });
   }
 
@@ -4844,6 +5277,20 @@ extension ChannelModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy>
+      thenByTotalDurationSeconds() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'totalDurationSeconds', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy>
+      thenByTotalDurationSecondsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'totalDurationSeconds', Sort.desc);
+    });
+  }
+
   QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy> thenByTvgId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'tvgId', Sort.asc);
@@ -4931,6 +5378,13 @@ extension ChannelModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<ChannelModel, ChannelModel, QDistinct>
+      distinctByEpisodesFetchedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'episodesFetchedAt');
+    });
+  }
+
   QueryBuilder<ChannelModel, ChannelModel, QDistinct> distinctByGroupTitle(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -4978,6 +5432,14 @@ extension ChannelModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<ChannelModel, ChannelModel, QDistinct> distinctByParentSeriesId(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'parentSeriesId',
+          caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<ChannelModel, ChannelModel, QDistinct> distinctByPlaylistId() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'playlistId');
@@ -5001,6 +5463,13 @@ extension ChannelModelQueryWhereDistinct
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'seriesName', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QDistinct>
+      distinctByShouldRefetchEpisodes() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'shouldRefetchEpisodes');
     });
   }
 
@@ -5051,6 +5520,13 @@ extension ChannelModelQueryWhereDistinct
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'tmdbYear', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<ChannelModel, ChannelModel, QDistinct>
+      distinctByTotalDurationSeconds() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'totalDurationSeconds');
     });
   }
 
@@ -5121,6 +5597,13 @@ extension ChannelModelQueryProperty
     });
   }
 
+  QueryBuilder<ChannelModel, DateTime?, QQueryOperations>
+      episodesFetchedAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'episodesFetchedAt');
+    });
+  }
+
   QueryBuilder<ChannelModel, String?, QQueryOperations> groupTitleProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'groupTitle');
@@ -5164,6 +5647,13 @@ extension ChannelModelQueryProperty
     });
   }
 
+  QueryBuilder<ChannelModel, String?, QQueryOperations>
+      parentSeriesIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'parentSeriesId');
+    });
+  }
+
   QueryBuilder<ChannelModel, int, QQueryOperations> playlistIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'playlistId');
@@ -5185,6 +5675,13 @@ extension ChannelModelQueryProperty
   QueryBuilder<ChannelModel, String?, QQueryOperations> seriesNameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'seriesName');
+    });
+  }
+
+  QueryBuilder<ChannelModel, bool, QQueryOperations>
+      shouldRefetchEpisodesProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'shouldRefetchEpisodes');
     });
   }
 
@@ -5229,6 +5726,13 @@ extension ChannelModelQueryProperty
   QueryBuilder<ChannelModel, String?, QQueryOperations> tmdbYearProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'tmdbYear');
+    });
+  }
+
+  QueryBuilder<ChannelModel, int, QQueryOperations>
+      totalDurationSecondsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'totalDurationSeconds');
     });
   }
 

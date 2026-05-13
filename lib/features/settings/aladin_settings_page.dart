@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import '../../../core/models/aladin_playlist_model.dart';
 import '../../../core/services/aladin_playlist_service.dart';
 import '../../core/services/aladin_epg_engine.dart';
@@ -31,6 +32,21 @@ class _SettingsPageState extends State<SettingsPage>
   final _locName = TextEditingController();
   String? _localPath;
 
+  // Focus Nodes
+  final _fnM3uUrl = FocusNode();
+  final _fnM3uName = FocusNode();
+  final _fnM3uBtn = FocusNode();
+
+  final _fnXtSrv = FocusNode();
+  final _fnXtUser = FocusNode();
+  final _fnXtPass = FocusNode();
+  final _fnXtName = FocusNode();
+  final _fnXtBtn = FocusNode();
+
+  final _fnLocName = FocusNode();
+  final _fnLocBtn = FocusNode();
+  final _fnEpgBtn = FocusNode();
+
   bool _importing = false;
   bool _epgSyncing = false;
   String _status = '';
@@ -41,21 +57,16 @@ class _SettingsPageState extends State<SettingsPage>
     _tabs = TabController(length: 3, vsync: this);
   }
 
-  // _checkEpgSync fonksiyonu tamamen kaldırıldı
-
   @override
   void dispose() {
     _tabs.dispose();
-    for (final c in [
-      _m3uUrl,
-      _m3uName,
-      _xtSrv,
-      _xtUser,
-      _xtPass,
-      _xtName,
-      _locName
-    ]) {
+    final ctrls = [_m3uUrl, _m3uName, _xtSrv, _xtUser, _xtPass, _xtName, _locName];
+    for (final c in ctrls) {
       c.dispose();
+    }
+    final nodes = [_fnM3uUrl, _fnM3uName, _fnM3uBtn, _fnXtSrv, _fnXtUser, _fnXtPass, _fnXtName, _fnXtBtn, _fnLocName, _fnLocBtn, _fnEpgBtn];
+    for (final n in nodes) {
+      n.dispose();
     }
     super.dispose();
   }
@@ -423,8 +434,6 @@ class _SettingsPageState extends State<SettingsPage>
                 ]),
               ),
               if (_status.isNotEmpty) _statusRow(),
-              _langRow(state, s),
-              _epgRow(state, s),
               const SizedBox(height: 10),
             ])),
         const VerticalDivider(width: 1, color: AppTheme.divider),
@@ -440,16 +449,18 @@ class _SettingsPageState extends State<SettingsPage>
 
   Widget _portrait(AppState state, AppStrings s) => Column(children: [
         _tabBar(s),
-        SizedBox(
-            height: 340,
+        Expanded(
+          flex: 0,
+          child: SizedBox(
+            height: 350,
             child: TabBarView(controller: _tabs, children: [
               _m3uForm(state, s),
               _xtForm(state, s),
               _locForm(state, s)
-            ])),
+            ]),
+          ),
+        ),
         if (_status.isNotEmpty) _statusRow(),
-        _langRow(state, s),
-        _epgRow(state, s),
         const Divider(height: 20),
         Padding(
             padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
@@ -548,24 +559,74 @@ class _SettingsPageState extends State<SettingsPage>
     final label = days >= 999 ? s.epgNeverSynced : s.epgLastSync(days);
     return Padding(
         padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(color: AppTheme.card, borderRadius: BorderRadius.circular(8)),
+          child: Row(children: [
+            const Icon(Icons.calendar_today, size: 16, color: AppTheme.textMuted),
+            const SizedBox(width: 10),
+            Expanded(child: Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13))),
+            _TVButton(
+              focusNode: _fnEpgBtn,
+              onPressed: _epgSyncing ? null : _forceEpgSync,
+              icon: _epgSyncing ? null : Icons.sync,
+              label: _epgSyncing ? s.epgSyncing : s.epgUpdate,
+              isLoading: _epgSyncing,
+              small: true,
+            ),
+          ]),
+        ));
+  }
+
+  Widget _aboutRow(AppState state, AppStrings s) {
+    return Padding(
+        padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
         child: _TVFocusWrapper(
+          onTap: () => _showAboutDialog(s),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(color: AppTheme.card, borderRadius: BorderRadius.circular(8)),
             child: Row(children: [
-              const Icon(Icons.calendar_today, size: 16, color: AppTheme.textMuted),
+              const Icon(Icons.info_outline, size: 16, color: AppTheme.textMuted),
               const SizedBox(width: 10),
-              Expanded(child: Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13))),
-              _TVButton(
-                onPressed: _epgSyncing ? null : _forceEpgSync,
-                icon: _epgSyncing ? null : Icons.sync,
-                label: _epgSyncing ? s.epgSyncing : s.epgUpdate,
-                isLoading: _epgSyncing,
-                small: true,
-              ),
+              Expanded(child: Text(s.about, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13))),
+              const Icon(Icons.chevron_right, size: 14, color: AppTheme.accent),
             ]),
           ),
         ));
+  }
+
+  void _showAboutDialog(AppStrings s) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(s.about, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('aladinIPTV Player Pro', style: TextStyle(color: AppTheme.accent, fontWeight: FontWeight.bold, fontSize: 18)),
+            const SizedBox(height: 8),
+            const Text('Version 2.2.0', style: TextStyle(color: Colors.white70, fontSize: 14)),
+            const SizedBox(height: 16),
+            Text(s.developer, style: const TextStyle(color: Colors.white, fontSize: 14)),
+            const SizedBox(height: 8),
+            _TVFocusWrapper(
+              onTap: () => url_launcher.launchUrl(Uri.parse('https://github.com/tezalaaddin')),
+              child: const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Text('https://github.com/tezalaaddin', style: TextStyle(color: Colors.blue, decoration: TextDecoration.underline, fontSize: 13)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          _TVDialogButton(label: s.close, isPrimary: true, onPressed: () => Navigator.pop(context)),
+        ],
+      ),
+    );
   }
 
   Widget _playlistList(AppState state, AppStrings s) {
@@ -595,38 +656,90 @@ class _SettingsPageState extends State<SettingsPage>
   Widget _m3uForm(AppState state, AppStrings s) => SingleChildScrollView(
     padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
     child: Column(children: [
-      _TVTextField(controller: _m3uUrl, label: 'M3U URL', hint: 'http://...', action: TextInputAction.next),
+      _TVTextField(
+        controller: _m3uUrl,
+        focusNode: _fnM3uUrl,
+        autofocus: true, // Açılışta ilk alan odaklı gelsin
+        label: 'M3U URL',
+        hint: 'http://...',
+        action: TextInputAction.next,
+        onSubmitted: (_) => FocusScope.of(context).requestFocus(_fnM3uName),
+      ),
       const SizedBox(height: 12),
-      _TVTextField(controller: _m3uName, label: s.playlistName, action: TextInputAction.done),
+      _TVTextField(
+        controller: _m3uName,
+        focusNode: _fnM3uName,
+        label: s.playlistName,
+        action: TextInputAction.next,
+        onSubmitted: (_) => FocusScope.of(context).requestFocus(_fnM3uBtn),
+      ),
       const SizedBox(height: 20),
       _TVButton(
+        focusNode: _fnM3uBtn,
         onPressed: _importing ? null : _importM3U,
         icon: Icons.download,
         label: s.load,
         isLoading: _importing,
       ),
+      const SizedBox(height: 24),
+      const Divider(color: AppTheme.divider),
+      const SizedBox(height: 12),
+      _langRow(state, s),
+      _epgRow(state, s),
+      _aboutRow(state, s),
     ]),
   );
 
   Widget _xtForm(AppState state, AppStrings s) => SingleChildScrollView(
     padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
     child: Column(children: [
-      _TVTextField(controller: _xtSrv, label: s.server, hint: 'http://...', action: TextInputAction.next),
+      _TVTextField(
+        controller: _xtSrv,
+        focusNode: _fnXtSrv,
+        label: s.server,
+        hint: 'http://...',
+        action: TextInputAction.next,
+        onSubmitted: (_) => FocusScope.of(context).requestFocus(_fnXtUser),
+      ),
       const SizedBox(height: 10),
-      Row(children: [
-        Expanded(child: _TVTextField(controller: _xtUser, label: s.username, action: TextInputAction.next)),
-        const SizedBox(width: 10),
-        Expanded(child: _TVTextField(controller: _xtPass, label: s.password, obscure: true, action: TextInputAction.next)),
-      ]),
+      _TVTextField(
+        controller: _xtUser,
+        focusNode: _fnXtUser,
+        label: s.username,
+        action: TextInputAction.next,
+        onSubmitted: (_) => FocusScope.of(context).requestFocus(_fnXtPass),
+      ),
       const SizedBox(height: 10),
-      _TVTextField(controller: _xtName, label: s.playlistName, action: TextInputAction.done),
+      _TVTextField(
+        controller: _xtPass,
+        focusNode: _fnXtPass,
+        label: s.password,
+        obscure: true,
+        action: TextInputAction.next,
+        onSubmitted: (_) => FocusScope.of(context).requestFocus(_fnXtName),
+      ),
+      const SizedBox(height: 10),
+      _TVTextField(
+        controller: _xtName,
+        focusNode: _fnXtName,
+        label: s.playlistName,
+        action: TextInputAction.next,
+        onSubmitted: (_) => FocusScope.of(context).requestFocus(_fnXtBtn),
+      ),
       const SizedBox(height: 20),
       _TVButton(
+        focusNode: _fnXtBtn,
         onPressed: _importing ? null : _importXtream,
         icon: Icons.cloud_download,
         label: s.connect,
         isLoading: _importing,
       ),
+      const SizedBox(height: 24),
+      const Divider(color: AppTheme.divider),
+      const SizedBox(height: 12),
+      _langRow(state, s),
+      _epgRow(state, s),
+      _aboutRow(state, s),
     ]),
   );
 
@@ -647,14 +760,27 @@ class _SettingsPageState extends State<SettingsPage>
         ),
       ),
       const SizedBox(height: 12),
-      _TVTextField(controller: _locName, label: s.playlistName, action: TextInputAction.done),
+      _TVTextField(
+        controller: _locName,
+        focusNode: _fnLocName,
+        label: s.playlistName,
+        action: TextInputAction.next,
+        onSubmitted: (_) => FocusScope.of(context).requestFocus(_fnLocBtn),
+      ),
       const SizedBox(height: 20),
       _TVButton(
+        focusNode: _fnLocBtn,
         onPressed: _importing ? null : _importLocal,
         icon: Icons.upload_file,
         label: s.import,
         isLoading: _importing,
       ),
+      const SizedBox(height: 24),
+      const Divider(color: AppTheme.divider),
+      const SizedBox(height: 12),
+      _langRow(state, s),
+      _epgRow(state, s),
+      _aboutRow(state, s),
     ]),
   );
 }
@@ -761,17 +887,23 @@ class _TVFocusWrapperState extends State<_TVFocusWrapper> {
 
 class _TVTextField extends StatefulWidget {
   final TextEditingController controller;
+  final FocusNode? focusNode;
   final String label;
   final String? hint;
   final bool obscure;
+  final bool autofocus;
   final TextInputAction action;
+  final ValueChanged<String>? onSubmitted;
 
   const _TVTextField({
     required this.controller,
+    this.focusNode,
     required this.label,
     this.hint,
     this.obscure = false,
+    this.autofocus = false,
     required this.action,
+    this.onSubmitted,
   });
 
   @override
@@ -779,18 +911,52 @@ class _TVTextField extends StatefulWidget {
 }
 
 class _TVTextFieldState extends State<_TVTextField> {
+  late FocusNode _internalNode;
   bool _isFocused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _internalNode = widget.focusNode ?? FocusNode();
+    _internalNode.addListener(_onFocusChange);
+  }
+
+  @override
+  void dispose() {
+    _internalNode.removeListener(_onFocusChange);
+    if (widget.focusNode == null) _internalNode.dispose();
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    if (mounted) setState(() => _isFocused = _internalNode.hasFocus);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Focus(
-      onFocusChange: (v) => setState(() => _isFocused = v),
       onKeyEvent: (node, event) {
         if (event is KeyDownEvent) {
+          // TV OK / ENTER -> Aktif et ve klavyeyi aç
+          if (event.logicalKey == LogicalKeyboardKey.select || 
+              event.logicalKey == LogicalKeyboardKey.enter) {
+            _internalNode.requestFocus();
+            return KeyEventResult.ignored; // TextField'ın kendi işlemesine izin ver
+          }
+          // YUKARI / AŞAĞI -> Text alanından çıkış yap
+          if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+            FocusScope.of(context).focusInDirection(TraversalDirection.up);
+            return KeyEventResult.handled;
+          }
           if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
             FocusScope.of(context).focusInDirection(TraversalDirection.down);
             return KeyEventResult.handled;
-          } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-            FocusScope.of(context).focusInDirection(TraversalDirection.up);
+          }
+          // GERİ -> Odağı bırak ve klavyeyi kapat
+          if (event.logicalKey == LogicalKeyboardKey.backspace || 
+              event.logicalKey == LogicalKeyboardKey.escape) {
+            _internalNode.unfocus();
+            SystemChannels.textInput.invokeMethod('TextInput.hide');
             return KeyEventResult.handled;
           }
         }
@@ -804,8 +970,14 @@ class _TVTextFieldState extends State<_TVTextField> {
         ),
         child: TextField(
           controller: widget.controller,
+          focusNode: _internalNode,
+          autofocus: widget.autofocus,
           obscureText: widget.obscure,
           textInputAction: widget.action,
+          onSubmitted: (val) {
+            widget.onSubmitted?.call(val);
+          },
+          scrollPadding: const EdgeInsets.only(bottom: 150),
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             labelText: widget.label,
@@ -822,6 +994,7 @@ class _TVTextFieldState extends State<_TVTextField> {
 
 class _TVButton extends StatefulWidget {
   final VoidCallback? onPressed;
+  final FocusNode? focusNode;
   final IconData? icon;
   final String label;
   final bool isLoading;
@@ -829,6 +1002,7 @@ class _TVButton extends StatefulWidget {
 
   const _TVButton({
     required this.onPressed,
+    this.focusNode,
     this.icon,
     required this.label,
     this.isLoading = false,
@@ -844,6 +1018,7 @@ class _TVButtonState extends State<_TVButton> {
   @override
   Widget build(BuildContext context) {
     return Focus(
+      focusNode: widget.focusNode,
       onFocusChange: (v) => setState(() => _isFocused = v),
       onKeyEvent: (node, event) {
         if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.select || event.logicalKey == LogicalKeyboardKey.enter)) {

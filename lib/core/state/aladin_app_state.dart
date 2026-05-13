@@ -4,40 +4,7 @@ import '../services/aladin_playlist_service.dart';
 import 'aladin_app_prefs.dart';
 import 'aladin_app_strings.dart';
 
-const aladinDemoPlaylists = [
-  {
-    'name': '🇹🇷 Türkçe TV Kanalları',
-    'url': 'https://iptv-org.github.io/iptv/countries/tr.m3u'
-  },
-  {
-    'name': '📰 Haber',
-    'url': 'https://iptv-org.github.io/iptv/categories/news.m3u'
-  },
-  {
-    'name': '⚽ Spor',
-    'url': 'https://iptv-org.github.io/iptv/categories/sports.m3u'
-  },
-  {
-    'name': '🎬 Sinema',
-    'url': 'https://iptv-org.github.io/iptv/categories/movies.m3u'
-  },
-  {
-    'name': '🎞 Belgesel',
-    'url': 'https://iptv-org.github.io/iptv/categories/documentary.m3u'
-  },
-  {
-    'name': '👶 Çocuk',
-    'url': 'https://iptv-org.github.io/iptv/categories/kids.m3u'
-  },
-  {
-    'name': '🌍 Genel Liste',
-    'url': 'https://iptv-org.github.io/iptv/index.m3u'
-  },
-  {
-    'name': '🇹🇷 Türkçe Kanallar',
-    'url': 'https://iptv-org.github.io/iptv/languages/tur.m3u'
-  },
-];
+const aladinDemoPlaylists = <Map<String, String>>[];
 
 class AppState extends ChangeNotifier {
   AppState._();
@@ -46,7 +13,6 @@ class AppState extends ChangeNotifier {
   List<PlaylistModel> _playlists = [];
   PlaylistModel? _active;
   String _lang = 'tr';
-  bool _demoSeeded = false;
 
   // Dizi bölümleri arasında paylaşılan metadata
   String? _activeSeriesPoster;
@@ -66,7 +32,6 @@ class AppState extends ChangeNotifier {
   Future<void> init() async {
     await AladinPrefs.instance.load();
     _lang = AladinPrefs.instance.getString('lang') ?? 'tr';
-    _demoSeeded = AladinPrefs.instance.getBool('demoSeeded');
   }
 
   void setActiveSeriesMeta({String? poster, String? name, String? overview}) {
@@ -83,12 +48,6 @@ class AppState extends ChangeNotifier {
 
   Future<void> loadPlaylists() async {
     _playlists = await PlaylistService.instance.getAll();
-    if (_playlists.isEmpty && !_demoSeeded) {
-      _demoSeeded = true;
-      await AladinPrefs.instance.setBool('demoSeeded', true);
-      await _seedDemos();
-      _playlists = await PlaylistService.instance.getAll();
-    }
     if (_active == null && _playlists.isNotEmpty) {
       _active = _playlists.first;
     } else if (_active != null) {
@@ -108,19 +67,6 @@ class AppState extends ChangeNotifier {
       }
     }
     notifyListeners();
-  }
-
-  Future<void> _seedDemos() async {
-    for (final d in aladinDemoPlaylists) {
-      final p = PlaylistModel()
-        ..url = d['url']!
-        ..name = d['name']!
-        ..type = 'm3u'
-        ..createdAt = DateTime.now()
-        ..lastUpdated = DateTime.now()
-        ..totalCount = 0;
-      await PlaylistService.instance.saveStub(p);
-    }
   }
 
   void selectPlaylist(PlaylistModel p) {

@@ -25,6 +25,8 @@ class MainPage extends StatefulWidget {
 class _MainPageState extends State<MainPage> {
   int _index = 0;
   final FocusScopeNode _mainFocusScope = FocusScopeNode();
+  final List<FocusNode> _navNodes = List.generate(6, (index) => FocusNode());
+  final FocusNode _contentFocusNode = FocusNode();
   bool _epgDialogShown = false;
   
   CategoryModel? _selectedCategory;
@@ -57,6 +59,10 @@ class _MainPageState extends State<MainPage> {
   @override
   void dispose() {
     _mainFocusScope.dispose();
+    _contentFocusNode.dispose();
+    for (final n in _navNodes) {
+      n.dispose();
+    }
     super.dispose();
   }
 
@@ -92,16 +98,31 @@ class _MainPageState extends State<MainPage> {
       content = AladinCategoryPage(
         category: _selectedCategory!,
         playlistId: state.active!.id,
-        onChannelTap: (ch) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => PlayerPage(
-                channel: ch,
-                playlist: [ch], // Default for now, though better would be to pass the category list
+        onChannelTap: (ch, list) {
+          if (ch.contentType == 'series') {
+            final name = ch.seriesName?.trim().isNotEmpty == true ? ch.seriesName! : ch.name;
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => AladinSeriesDetailPage(
+                  seriesName: name,
+                  playlistId: state.active!.id,
+                  seriesId: ch.parentSeriesId ?? ch.tvgId,
+                  playlistModel: state.active,
+                ),
               ),
-            ),
-          );
+            );
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => PlayerPage(
+                  channel: ch,
+                  playlist: list,
+                ),
+              ),
+            );
+          }
         },
         onBack: () => setState(() => _selectedCategory = null),
       );
@@ -138,6 +159,9 @@ class _MainPageState extends State<MainPage> {
           onPopInvokedWithResult: (didPop, result) async {
             if (didPop) return;
             
+            // IMMEDIATELY Force focus to SideNav item when Back is pressed
+            _navNodes[_index].requestFocus();
+
             if (_selectedCategory != null) {
               setState(() => _selectedCategory = null);
               return;
@@ -147,9 +171,13 @@ class _MainPageState extends State<MainPage> {
               _goTo(0);
               return;
             }
+            
             final shouldExit = await _showExitConfirmation(s);
             if (shouldExit && mounted) {
               await SystemChannels.platform.invokeMethod('SystemNavigator.pop');
+            } else {
+              // Re-focus just in case diyalog lost it
+              _navNodes[_index].requestFocus();
             }
           },
           child: Scaffold(
@@ -159,20 +187,17 @@ class _MainPageState extends State<MainPage> {
                 if (isLandscape) _SideNavBar(
                   currentIndex: _index,
                   onTap: _goTo,
+                  nodes: _navNodes,
+                  onRightPressed: () => _contentFocusNode.requestFocus(),
                 ),
                 Expanded(
-                  child: Stack(
-                    children: [
-                      RepaintBoundary(
-                        child: content,
-                      ),
-                      const Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        child: SafeArea(child: RepaintBoundary(child: _SyncProgressBar())),
-                      ),
-                    ],
+                  child: Focus(
+                    focusNode: _contentFocusNode,
+                    skipTraversal: true,
+                    child: FocusTraversalGroup(
+                      policy: OrderedTraversalPolicy(),
+                      child: content,
+                    ),
                   ),
                 ),
               ],
@@ -287,8 +312,10 @@ class _TVDialogButtonState extends State<_TVDialogButton> {
 class _SideNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
+  final List<FocusNode> nodes;
+  final VoidCallback onRightPressed;
 
-  const _SideNavBar({required this.currentIndex, required this.onTap});
+  const _SideNavBar({required this.currentIndex, required this.onTap, required this.nodes, required this.onRightPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -347,51 +374,65 @@ class _SideNavBar extends StatelessWidget {
           ),
           const SizedBox(height: 48),
           Expanded(
-            child: ListView(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              children: [
-                _SideNavItem(
-                  icon: Icons.live_tv,
-                  label: s.navLiveTV,
-                  isSelected: currentIndex == 0,
-                  onTap: () => onTap(0),
-                  colorHint: Colors.red,
-                  autofocus: true, 
-                ),
-                _SideNavItem(
-                  icon: Icons.movie,
-                  label: s.navMovies,
-                  isSelected: currentIndex == 1,
-                  onTap: () => onTap(1),
-                  colorHint: Colors.green,
-                ),
-                _SideNavItem(
-                  icon: Icons.video_library,
-                  label: s.navSeries,
-                  isSelected: currentIndex == 2,
-                  onTap: () => onTap(2),
-                  colorHint: Colors.yellow,
-                ),
-                _SideNavItem(
-                  icon: Icons.search,
-                  label: s.navSearch,
-                  isSelected: currentIndex == 4,
-                  onTap: () => onTap(4),
-                ),
-                _SideNavItem(
-                  icon: Icons.favorite,
-                  label: s.navFavorites,
-                  isSelected: currentIndex == 3,
-                  onTap: () => onTap(3),
-                ),
-                _SideNavItem(
-                  icon: Icons.settings,
-                  label: s.navSettings,
-                  isSelected: currentIndex == 5,
-                  onTap: () => onTap(5),
-                  colorHint: Colors.blue,
-                ),
-              ],
+              child: Column(
+                children: [
+                  _SideNavItem(
+                    focusNode: nodes[0],
+                    icon: Icons.live_tv,
+                    label: s.navLiveTV,
+                    isSelected: currentIndex == 0,
+                    onTap: () => onTap(0),
+                    onRightPressed: onRightPressed,
+                    colorHint: Colors.red,
+                    autofocus: currentIndex == 0, 
+                  ),
+                  _SideNavItem(
+                    focusNode: nodes[1],
+                    icon: Icons.movie,
+                    label: s.navMovies,
+                    isSelected: currentIndex == 1,
+                    onTap: () => onTap(1),
+                    onRightPressed: onRightPressed,
+                    colorHint: Colors.green,
+                  ),
+                  _SideNavItem(
+                    focusNode: nodes[2],
+                    icon: Icons.video_library,
+                    label: s.navSeries,
+                    isSelected: currentIndex == 2,
+                    onTap: () => onTap(2),
+                    onRightPressed: onRightPressed,
+                    colorHint: Colors.yellow,
+                  ),
+                  _SideNavItem(
+                    focusNode: nodes[4],
+                    icon: Icons.search,
+                    label: s.navSearch,
+                    isSelected: currentIndex == 4,
+                    onTap: () => onTap(4),
+                    onRightPressed: onRightPressed,
+                  ),
+                  _SideNavItem(
+                    focusNode: nodes[3],
+                    icon: Icons.favorite,
+                    label: s.navFavorites,
+                    isSelected: currentIndex == 3,
+                    onTap: () => onTap(3),
+                    onRightPressed: onRightPressed,
+                  ),
+                  _SideNavItem(
+                    focusNode: nodes[5],
+                    icon: Icons.settings,
+                    label: s.navSettings,
+                    isSelected: currentIndex == 5,
+                    onTap: () => onTap(5),
+                    onRightPressed: onRightPressed,
+                    colorHint: Colors.blue,
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -405,16 +446,20 @@ class _SideNavItem extends StatefulWidget {
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
+  final VoidCallback? onRightPressed;
   final Color? colorHint;
   final bool autofocus;
+  final FocusNode? focusNode;
 
   const _SideNavItem({
     required this.icon,
     required this.label,
     required this.isSelected,
     required this.onTap,
+    this.onRightPressed,
     this.colorHint,
     this.autofocus = false,
+    this.focusNode,
   });
 
   @override
@@ -429,6 +474,7 @@ class _SideNavItemState extends State<_SideNavItem> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Focus(
+        focusNode: widget.focusNode,
         autofocus: widget.autofocus,
         onFocusChange: (v) => setState(() => _isFocused = v),
         onKeyEvent: (node, event) {
@@ -440,7 +486,12 @@ class _SideNavItemState extends State<_SideNavItem> {
               return KeyEventResult.handled;
             }
             if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-              FocusScope.of(context).focusInDirection(TraversalDirection.right);
+              // First try natural direction
+              if (FocusScope.of(context).focusInDirection(TraversalDirection.right)) {
+                return KeyEventResult.handled;
+              }
+              // If natural fail, use the bridge to content
+              widget.onRightPressed?.call();
               return KeyEventResult.handled;
             }
           }
@@ -496,42 +547,3 @@ class _SideNavItemState extends State<_SideNavItem> {
   }
 }
 
-class _SyncProgressBar extends StatelessWidget {
-  const _SyncProgressBar();
-
-  @override
-  Widget build(BuildContext context) {
-    final metadataSync = context.watch<MetadataSyncService>();
-    final epgSync = context.watch<AladinEpgEngine>();
-    final s = context.watch<AppState>().s;
-    
-    final isSyncing = metadataSync.isSyncing || epgSync.isSyncing;
-    if (!isSyncing) return const SizedBox.shrink();
-
-    final double value = epgSync.isSyncing ? epgSync.progress : metadataSync.progress;
-    final String label = epgSync.isSyncing 
-        ? "${s.epgSyncing} %${(value * 100).toInt()}" 
-        : s.syncingData;
-
-    return Container(
-      height: 20,
-      width: double.infinity,
-      color: Colors.black54,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          LinearProgressIndicator(
-            value: value,
-            backgroundColor: Colors.transparent,
-            valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.accent),
-            minHeight: 20,
-          ),
-          Text(
-            label,
-            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
-    );
-  }
-}

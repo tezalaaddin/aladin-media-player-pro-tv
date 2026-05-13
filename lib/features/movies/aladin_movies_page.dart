@@ -20,6 +20,7 @@ class MoviesPage extends StatefulWidget {
 class _MoviesPageState extends State<MoviesPage> {
   List<CategoryModel> _categories = [];
   List<ChannelModel> _favorites = [];
+  List<ChannelModel> _continueWatching = [];
   bool _loading = false;
   int? _loadedId;
 
@@ -56,11 +57,15 @@ class _MoviesPageState extends State<MoviesPage> {
         .getCategories(playlistId: id, contentType: 'movie');
     final allFavs = await ChannelService.instance.getFavorites(id);
     final movieFavs = allFavs.where((c) => c.contentType == 'movie').toList();
+    
+    final cw = await ChannelService.instance.getContinueWatching(id);
+    final movieCW = cw.where((c) => c.contentType == 'movie').toList();
 
     if (!mounted) return;
     setState(() {
       _categories = cats;
       _favorites = movieFavs;
+      _continueWatching = movieCW;
       _loading = false;
     });
   }
@@ -73,17 +78,33 @@ class _MoviesPageState extends State<MoviesPage> {
     return Consumer<AppState>(builder: (_, state, __) {
       final s = state.s;
       final noList = state.active == null;
+      
+      if (noList) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                s.addPlaylistHint,
+                style: const TextStyle(color: AppTheme.textSecondary),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () {}, 
+                autofocus: true,
+                icon: const Icon(Icons.settings),
+                label: Text(s.goToSettings),
+              ),
+            ],
+          ));
+      }
+
       return Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AladinAppBar(
             onRefresh:
                 state.active != null ? () => _load(state.active!.id) : null),
-        body: noList
-            ? Center(
-                child: Text(
-                    s.addPlaylistHint,
-                    style: const TextStyle(color: AppTheme.textSecondary)))
-            : _loading && _categories.isEmpty
+        body: _loading && _categories.isEmpty
                 ? const Center(
                     child: CircularProgressIndicator(color: AppTheme.accent))
                 : _categories.isEmpty
@@ -100,6 +121,7 @@ class _MoviesPageState extends State<MoviesPage> {
                             const SizedBox(height: 16), // Metin-Buton arası boşluk
                             ElevatedButton.icon(
                                 onPressed: () => _load(state.active!.id),
+                                autofocus: true,
                                 icon: const Icon(Icons.refresh),
                                 label: Text(s.retry)),
                           ]))
@@ -112,6 +134,12 @@ class _MoviesPageState extends State<MoviesPage> {
                               ),
                               sliver: SliverList(
                                 delegate: SliverChildListDelegate([
+                                  if (_continueWatching.isNotEmpty)
+                                    _MovieFavStrip(
+                                      title: '⏳ ${state.s.continueWatching ?? "İzlemeye Devam Et"}',
+                                      channels: _continueWatching,
+                                      onTap: (ch) => _play(ch, _continueWatching),
+                                    ),
                                   if (_favorites.isNotEmpty)
                                     _MovieFavStrip(
                                       title: '⭐ ${state.s.favorites}',

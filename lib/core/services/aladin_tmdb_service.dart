@@ -7,7 +7,14 @@ class TmdbService {
 
   static const _base = 'https://api.themoviedb.org/3';
   static const _imgBase = 'https://image.tmdb.org/t/p/w300';
-  static const _apiKey = '2af32eb18204fd1199147d7deacae125';
+
+  // API key'i build zamanında --dart-define=TMDB_API_KEY=xxxx olarak geçin.
+  // Örnek: flutter build appbundle --release --dart-define=TMDB_API_KEY=your_key
+  // Geliştirme için fallback bırakıldı; üretimde mutlaka --dart-define kullanın.
+  static const _apiKey = String.fromEnvironment(
+    'TMDB_API_KEY',
+    defaultValue: '2af32eb18204fd1199147d7deacae125',
+  );
 
   // Hafıza içi basit bir cache sistemi
   final Map<String, Map<String, dynamic>> _seriesCache = {};

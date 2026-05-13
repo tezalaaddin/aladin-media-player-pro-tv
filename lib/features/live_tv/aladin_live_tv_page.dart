@@ -22,7 +22,6 @@ class LiveTvPage extends StatefulWidget {
 
 class _LiveTvPageState extends State<LiveTvPage> {
   List<CategoryModel> _categories = [];
-  List<ChannelModel> _recent = [];
   List<ChannelModel> _favorites = [];
   bool _loading = false;
   int? _loadedId;
@@ -75,16 +74,12 @@ class _LiveTvPageState extends State<LiveTvPage> {
     final cats = await ChannelService.instance
         .getCategories(playlistId: id, contentType: 'tv');
     
-    final allRecent = await ChannelService.instance.getRecent(id, limit: 50);
-    final vodRecent = allRecent.where((c) => c.contentType != 'tv').toList();
-    
     final allFavs = await ChannelService.instance.getFavorites(id);
     final tvFavs = allFavs.where((c) => c.contentType == 'tv').toList();
 
     if (!mounted) return;
     setState(() {
       _categories = cats;
-      _recent = vodRecent;
       _favorites = tvFavs;
       _loading = false;
     });
@@ -102,10 +97,9 @@ class _LiveTvPageState extends State<LiveTvPage> {
   Widget build(BuildContext context) {
     return Consumer<AppState>(builder: (_, state, __) {
       if (state.active == null) {
-        return Scaffold(
-          backgroundColor: AppTheme.background,
-          appBar: const AladinAppBar(),
-          body: Center(
+        return Focus(
+          debugLabel: 'LiveTvEmptyFocus',
+          child: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -123,6 +117,7 @@ class _LiveTvPageState extends State<LiveTvPage> {
                 const SizedBox(height: 24),
                 ElevatedButton.icon(
                   onPressed: widget.onGoToSettings,
+                  autofocus: true,
                   icon: const Icon(Icons.settings),
                   label: Text(state.s.goToSettings),
                 ),
@@ -159,6 +154,7 @@ class _LiveTvPageState extends State<LiveTvPage> {
                           const SizedBox(height: 16),
                           ElevatedButton.icon(
                             onPressed: widget.onGoToSettings,
+                            autofocus: true,
                             icon: const Icon(Icons.add),
                             label: Text(
                                 state.s.addPlaylist),
@@ -175,13 +171,6 @@ class _LiveTvPageState extends State<LiveTvPage> {
                           ),
                           sliver: SliverList(
                             delegate: SliverChildListDelegate([
-                              if (_recent.isNotEmpty)
-                                _HorizStrip(
-                                  title: '🕒 ${state.s.continueWatching}',
-                                  channels: _recent,
-                                  onTap: (ch) => _play(ch, _recent),
-                                ),
-
                               if (_favorites.isNotEmpty)
                                 _HorizStrip(
                                   title: '⭐ ${state.s.favorites}',

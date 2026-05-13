@@ -10,7 +10,7 @@ import 'dart:async';
 class AladinCategoryPage extends StatefulWidget {
   final CategoryModel category;
   final int playlistId;
-  final void Function(ChannelModel) onChannelTap;
+  final void Function(ChannelModel, List<ChannelModel>) onChannelTap;
   final VoidCallback? onBack;
 
   const AladinCategoryPage({
@@ -191,7 +191,7 @@ class _AladinCategoryPageState extends State<AladinCategoryPage> {
                       channel: ch,
                       width: 130, // Standart genişlik
                       height: 175, // Standart yükseklik
-                      onTap: () => widget.onChannelTap(ch),
+                      onTap: () => widget.onChannelTap(ch, _channels),
                     );
                   },
                   childCount: _channels.length,

@@ -2,9 +2,10 @@ import 'package:isar/isar.dart';
 import '../database/aladin_isar_service.dart';
 import '../models/aladin_category_model.dart';
 import '../models/aladin_channel_model.dart';
-import '../parsers/aladin_import_bridge.dart'; // ← was: aladin_import_bridge
+import '../parsers/aladin_import_bridge.dart';
 import '../parsers/aladin_xtream_parser.dart';
-import '../models/aladin_playlist_model.dart'; // Modelin olduğu dosya
+import '../models/aladin_playlist_model.dart';
+import 'aladin_channel_service.dart';
 
 enum ImportProgress { idle, downloading, parsing, saving, done, error }
 
@@ -18,7 +19,6 @@ class PlaylistService {
 
   // ── Read ──────────────────────────────────────────────────────────────────
 
-  /// Returns all playlists sorted newest-first (highest id first).
   Future<List<PlaylistModel>> getAll() async {
     final list = await _db.playlistModels.where().findAll();
     return list.reversed.toList();
@@ -186,15 +186,22 @@ class PlaylistService {
       });
     }
 
+    onProgress?.call(ImportProgress.parsing, 0);
+
+    // Kategori Maplerini ve Modellerini çek
+    final liveCatMap = await parser.fetchCategoryMap('get_live_categories');
+    final vodCatMap = await parser.fetchCategoryMap('get_vod_categories');
+    final seriesCatMap = await parser.fetchCategoryMap('get_series_categories');
+
     final liveCats = await parser.fetchLiveCategories(playlistId);
     final vodCats = await parser.fetchVodCategories(playlistId);
     final seriesCats = await parser.fetchSeriesCategories(playlistId);
+    
     await _db.writeTxn(
       () => _db.categoryModels.putAll([...liveCats, ...vodCats, ...seriesCats]),
     );
 
     int total = 0, tv = 0, movie = 0, series = 0;
-    onProgress?.call(ImportProgress.parsing, 0);
 
     Future<void> imp(Stream<List<ChannelModel>> st) async {
       await for (final batch in st) {
@@ -212,9 +219,12 @@ class PlaylistService {
       }
     }
 
-    await imp(parser.fetchLiveStreams(playlistId));
-    await imp(parser.fetchVodStreams(playlistId));
-    await imp(parser.fetchSeriesStreams(playlistId));
+    await imp(parser.fetchLiveStreams(playlistId, liveCatMap));
+    await imp(parser.fetchVodStreams(playlistId, vodCatMap));
+    await imp(parser.fetchSeriesStreams(playlistId, seriesCatMap));
+
+    // Kanal sayılarını veritabanından hesaplayarak güncelle
+    await ChannelService.instance.updateCategoryCountsForPlaylist(playlistId);
 
     await _db.writeTxn(() async {
       final p = await _db.playlistModels.get(playlistId);

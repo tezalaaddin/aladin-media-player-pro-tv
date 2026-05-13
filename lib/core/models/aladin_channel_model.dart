@@ -30,6 +30,7 @@ class ChannelModel {
 
   // Series
   String? seriesName;
+  String? parentSeriesId; // Xtream series_id for episodes
   int? season;
   int? episode;
 
@@ -58,4 +59,16 @@ class ChannelModel {
   bool isFavorite = false;
   DateTime? lastWatched;
   int watchedSeconds = 0;
+  int totalDurationSeconds = 0;
+
+  /// Xtream dizi bölümlerinin en son API'den çekildiği zaman.
+  /// null → bölümler hiç çekilmedi.
+  /// 24 saatten eski ise yeniden çekilmesi önerilir.
+  DateTime? episodesFetchedAt;
+
+  /// Bölümlerin yeniden çekilmesi gerekip gerekmediğini kontrol eder (24 saat eşiği).
+  bool get shouldRefetchEpisodes {
+    if (episodesFetchedAt == null) return true;
+    return DateTime.now().difference(episodesFetchedAt!).inHours >= 24;
+  }
 }

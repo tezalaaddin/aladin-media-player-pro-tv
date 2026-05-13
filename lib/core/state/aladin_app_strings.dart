@@ -147,6 +147,8 @@ class AppStrings {
 
   // ── Settings ───────────────────────────────────────────────────────────────
   String get settingsTitle    => _t('settingsTitle');
+  String get about            => _t('about');
+  String get developer        => _t('developer');
   String get tabM3U           => _t('tabM3U');
   String get tabXtream        => _t('tabXtream');
   String get tabLocal         => _t('tabLocal');
@@ -307,7 +309,9 @@ class AppStrings {
     'aspect169':      '16:9',
     'aspect43':       '4:3',
     'aspectFill':     'Doldur',
-    'settingsTitle':  'aladinIPTV Player Pro',
+    'settingsTitle':  'Aladin Media Player Pro TV',
+    'about':          'Hakkında',
+    'developer':      'Geliştirici: Aladin',
     'tabM3U':         'M3U URL',
     'tabXtream':      'Xtream',
     'tabLocal':       'Lokal',
@@ -444,6 +448,8 @@ class AppStrings {
     'aspect43':       '4:3',
     'aspectFill':     'Fill',
     'settingsTitle':  'aladinIPTV Player Pro',
+    'about':          'About',
+    'developer':      'Developer: Aladin',
     'tabM3U':         'M3U URL',
     'tabXtream':      'Xtream',
     'tabLocal':       'Local',
