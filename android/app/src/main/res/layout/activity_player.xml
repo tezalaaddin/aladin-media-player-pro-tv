@@ -76,11 +76,59 @@
         android:gravity="center"
         android:visibility="gone">
 
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="● Altyazı" android:textColor="#FF5252" android:textSize="14sp" android:layout_marginEnd="20dp" android:textStyle="bold" />
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="● Ses" android:textColor="#4CAF50" android:textSize="14sp" android:layout_marginEnd="20dp" android:textStyle="bold" />
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="● Kalite" android:textColor="#FFEB3B" android:textSize="14sp" android:layout_marginEnd="20dp" android:textStyle="bold" />
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="● Oran" android:textColor="#2196F3" android:textSize="14sp" android:layout_marginEnd="20dp" android:textStyle="bold" />
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="[0] Favori" android:textColor="#FFFFFF" android:textSize="14sp" android:textStyle="bold" />
+        <TextView
+            android:id="@+id/btn_subtitles"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="● Altyazı"
+            android:textColor="#FF5252"
+            android:textSize="14sp"
+            android:layout_marginEnd="20dp"
+            android:textStyle="bold"
+            android:padding="10dp" />
+
+        <TextView
+            android:id="@+id/btn_audio"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="● Ses"
+            android:textColor="#4CAF50"
+            android:textSize="14sp"
+            android:layout_marginEnd="20dp"
+            android:textStyle="bold"
+            android:padding="10dp" />
+
+        <TextView
+            android:id="@+id/btn_quality"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="● Kalite"
+            android:textColor="#FFEB3B"
+            android:textSize="14sp"
+            android:layout_marginEnd="20dp"
+            android:textStyle="bold"
+            android:padding="10dp" />
+
+        <TextView
+            android:id="@+id/btn_aspect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="● Oran"
+            android:textColor="#2196F3"
+            android:textSize="14sp"
+            android:layout_marginEnd="20dp"
+            android:textStyle="bold"
+            android:padding="10dp" />
+
+        <TextView
+            android:id="@+id/btn_favorite"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="[0] Favori"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:padding="10dp" />
     </LinearLayout>
 
     <!-- Ses Barı -->

@@ -1095,6 +1095,40 @@ API 36'dan 35'e düşürüldü.
 Manifest'te @drawable yapıldı.
 Sadece READ_EXTERNAL_STORAGE ve internet izinleri var.
 
+## V2.1.9.6 Sürüm Notları:
+
+R8 (yeni nesil Proguard) derleyicisi, Flutter'ın çekirdek kütüphanelerinde yer alan ancak projenizde fiziksel olarak bulunmayan Google Play Core bileşenlerini aradığı için "Warning" (Uyarı) veriyor ve bu uyarılar derleme sürecinde veya uygulama çalışma anında (runtime) çökmelere neden olabiliyor.
+Belirttiğiniz satırları proguard-rules.pro dosyasına ekledim. Bu sayede R8, bu eksik kütüphaneler için uyarı vermeyi bırakacak ve uygulamayı "eksiksiz" olarak paketleyecektir.
+Televizyonlar için tasarladığımız "odaklanma" (focus) sistemi, telefonlarda "dokunma" (gesture) olaylarını kapsamadığı için bu sorunlar yaşanıyor. Hem diyaloglardaki butonlara dokunma desteği ekleyerek hem de oynatıcıda dokunmatik ekran davranışlarını düzelterek bu pürüzleri giderelim.
+Yapılacak Düzenlemeler:
+1.Diyalog Butonları (Smart TV & Telefon Uyumu): _TVDialogButton bileşenlerine dokunma (GestureDetector) desteği ekliyorum. Böylece telefonlarda parmakla basıldığında da onPressed tetiklenecek.
+2.Video Oynatıcı (OSD Kontrolü): Telefonlarda ekrana dokunulduğunda kontrol panelinin (OSD - On Screen Display) açılmasını sağlayacak dokunma dinleyicisi ekliyorum.
+Şu an itibariyle:
+•✅ Diyaloglar: Hem TV kumandasıyla hem de telefonlarda dokunarak onaylanabiliyor.
+•✅ Oynatıcı: Telefonlarda ekrana dokunulduğunda kontroller açılıyor.
+•✅ Güvenlik: Android 14 çökme sorunu giderildi.
+•✅ İmzalama ve Mağaza: Play Store için gerekli tüm isim, ikon ve paket yapılandırmaları yapıldı.
+
+## V2.1.9.7 Sürüm Notları:
+
+Telefon kullanıcıları için oynatıcıyı (player) tamamen dokunmatik hale getirdim. Artık sadece TV kumandasıyla değil, parmak hareketlerinizle de tüm kontrollere hakim olabilirsiniz.
+Eklenen Dokunmatik Özellikler:
+1.Ekran Hareketleri (Gestures):
+◦Tek Tıklama: Kontrol panelini (OSD) açar veya kapatır.
+◦Çift Tıklama: Videoyu durdurur veya devam ettirir (Pause/Play).
+◦Sağ/Sol Kaydırma:
+▪Film/Dizi: İleri (30sn) veya geri (10sn) sarar.
+▪Canlı TV: Sesi yükseltir veya alçaltır.
+◦Yukarı/Aşağı Kaydırma: Bir sonraki veya bir önceki kanala/videoya geçer.
+◦Uzun Basma: Kanalı veya videoyu favorilere ekler/çıkarır.
+2.Tıklanabilir Kontrol Butonları:
+◦Ekranın altındaki renkli rehber yazılarını (Altyazı, Ses, Kalite, Oran, Favori) artık buton gibi kullanabilirsiniz.
+◦Üzerlerine dokunduğunuzda ilgili ayar (Diller arası geçiş, görüntü oranı vb.) anında değişir.
+3.Hızlı Favori: Kanal isminin yanındaki yıldız ikonuna dokunarak da favori durumunu değiştirebilirsiniz.
+Yapılan Değişiklikler:
+•NativePlayerActivity.kt: Dokunma sensörü (GestureDetector) entegre edildi ve tüm fonksiyonlar bu sensöre bağlandı.
+•activity_player.xml: Alt kısımdaki yazılar, dokunmaya hassas ve buton olarak işlev görecek şekilde güncellendi.
+Artık hem televizyonda kumandayla hem de cep telefonunda dokunarak profesyonel bir oynatıcı deneyimi elde edeceksiniz.
 
 ## UI TARAFI AÇIKLAMASI:
 

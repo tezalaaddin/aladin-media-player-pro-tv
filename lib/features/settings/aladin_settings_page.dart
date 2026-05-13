@@ -819,27 +819,30 @@ class _TVDialogButtonState extends State<_TVDialogButton> {
         }
         return KeyEventResult.ignored;
       },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        decoration: BoxDecoration(
-          color: _focused 
-              ? (widget.isDanger ? Colors.redAccent : AppTheme.accent) 
-              : (widget.isPrimary ? AppTheme.card : Colors.transparent),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: _focused ? Colors.white : (widget.isPrimary ? AppTheme.accent : Colors.transparent),
-            width: 2,
+      child: GestureDetector(
+        onTap: widget.onPressed,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          decoration: BoxDecoration(
+            color: _focused 
+                ? (widget.isDanger ? Colors.redAccent : AppTheme.accent) 
+                : (widget.isPrimary ? AppTheme.card : Colors.transparent),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: _focused ? Colors.white : (widget.isPrimary ? AppTheme.accent : Colors.transparent),
+              width: 2,
+            ),
+            boxShadow: _focused ? [BoxShadow(color: (widget.isDanger ? Colors.red : AppTheme.accent).withValues(alpha:0.4), blurRadius: 10)] : null,
           ),
-          boxShadow: _focused ? [BoxShadow(color: (widget.isDanger ? Colors.red : AppTheme.accent).withValues(alpha:0.4), blurRadius: 10)] : null,
-        ),
-        child: Text(
-          widget.label,
-          style: TextStyle(
-            color: _focused ? Colors.white : (widget.isDanger ? Colors.redAccent : (widget.isPrimary ? AppTheme.accent : AppTheme.textMuted)),
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
+          child: Text(
+            widget.label,
+            style: TextStyle(
+              color: _focused ? Colors.white : (widget.isDanger ? Colors.redAccent : (widget.isPrimary ? AppTheme.accent : AppTheme.textMuted)),
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
           ),
         ),
       ),

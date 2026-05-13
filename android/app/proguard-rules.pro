@@ -1,67 +1,32 @@
-# ──────────────────────────────────────────────────────────────────────────────
-# aladinIPTV Player Pro — ProGuard / R8 Rules
-# ──────────────────────────────────────────────────────────────────────────────
-
-# Flutter — genel
+# Flutter Kuralları
+-keep class io.flutter.app.** { *; }
+-keep class io.flutter.plugin.** { *; }
+-keep class io.flutter.util.** { *; }
+-keep class io.flutter.view.** { *; }
 -keep class io.flutter.** { *; }
 -keep class io.flutter.plugins.** { *; }
--dontwarn io.flutter.**
 
-# Kotlin
--keep class kotlin.** { *; }
--keep class kotlinx.** { *; }
--dontwarn kotlin.**
-
-# AndroidX / AppCompat
--keep class androidx.appcompat.** { *; }
--dontwarn androidx.**
-
-# ── Media3 / ExoPlayer ────────────────────────────────────────────────────────
--keep class androidx.media3.** { *; }
--keep interface androidx.media3.** { *; }
--dontwarn androidx.media3.**
-
-# ExoPlayer decoder extension (HLS, DASH, RTMP vb.) — dinamik yükleme için
--keepclassmembers class * implements androidx.media3.exoplayer.mediacodec.MediaCodecRenderer {
-    *;
-}
-
-# ── Isar ──────────────────────────────────────────────────────────────────────
-# Isar native kütüphanelerini küçültme; generate edilmiş .g.dart kodları native
-# tarafta referans aldığından class isimlerini koru.
--keep class isar.** { *; }
--keep class dev.isar.** { *; }
--dontwarn isar.**
-
-# ── OkHttp / HTTP ─────────────────────────────────────────────────────────────
--dontwarn okhttp3.**
--dontwarn okio.**
--keep class okhttp3.** { *; }
--keep interface okhttp3.** { *; }
-
-# ── Uygulama sınıfları ────────────────────────────────────────────────────────
+# Uygulama Paketi Kuralları
 -keep class com.aladin.iptv.player.pro.** { *; }
--keep class com.aladin.iptv.pro.tv.** { *; }
 
-# ── Genel kurallar ────────────────────────────────────────────────────────────
-# Serialization / reflection ile kullanılan sınıfları koru
--keepattributes *Annotation*
--keepattributes Signature
--keepattributes EnclosingMethod
--keepattributes InnerClasses
+# Isar Veritabanı Kuralları (Kritik: arm64 cihazlarda çökme sebebi budur)
+-keep class io.isar.** { *; }
+-keepclassmembers class io.isar.** { *; }
+-dontwarn io.isar.**
 
-# Enum'ları koru (valueOf / values() çağrıları için)
--keepclassmembers enum * {
-    public static **[] values();
-    public static ** valueOf(java.lang.String);
-}
+# MediaKit / Video Player Kuralları
+-keep class com.alexmercerind.mediakit.** { *; }
+-dontwarn com.alexmercerind.mediakit.**
 
-# Native method bildirimlerini koru
--keepclasseswithmembernames class * {
-    native <methods>;
-}
+# AndroidX ve Support Kütüphaneleri
+-keep class androidx.core.app.CoreComponentFactory
+-dontwarn androidx.**
+-dontwarn com.google.android.material.**
 
-# Parcelable implementasyonlarını koru
--keepclassmembers class * implements android.os.Parcelable {
-    public static final ** CREATOR;
-}
+# --- Google Play Core (Flutter deferred components için gerekli, kullanılmasa bile) ---
+-dontwarn com.google.android.play.core.splitcompat.SplitCompatApplication
+-dontwarn com.google.android.play.core.splitinstall.**
+-dontwarn com.google.android.play.core.tasks.**
+
+# Genel olarak tüm play.core uyarılarını bastır
+-dontwarn com.google.android.play.**

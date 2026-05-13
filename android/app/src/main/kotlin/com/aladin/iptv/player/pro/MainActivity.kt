@@ -76,7 +76,12 @@ class MainActivity : FlutterActivity() {
             addAction("com.aladin.iptv.player.pro.FAVORITE_TOGGLED")
             addAction("com.aladin.iptv.player.pro.PROGRESS_UPDATE")
         }
-        registerReceiver(playerReceiver, filter)
+        
+        if (android.os.Build.VERSION.SDK_INT >= 33) { // TIRAMISU (Android 13) and above
+            registerReceiver(playerReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(playerReceiver, filter)
+        }
     }
 
     override fun onDestroy() {

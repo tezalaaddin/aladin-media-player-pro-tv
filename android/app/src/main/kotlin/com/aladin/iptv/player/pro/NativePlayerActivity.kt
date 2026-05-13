@@ -37,12 +37,17 @@ import android.graphics.BitmapFactory
 import java.net.URL
 import java.util.concurrent.Executors
 
-class NativePlayerActivity : AppCompatActivity() {
+import android.view.GestureDetector
+import android.view.MotionEvent
+import kotlin.math.abs
+
+class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener {
     private var player: ExoPlayer? = null
     private lateinit var playerView: PlayerView
     private lateinit var audioManager: AudioManager
     private lateinit var trackSelector: DefaultTrackSelector
     private lateinit var prefs: SharedPreferences
+    private lateinit var gestureDetector: GestureDetector
     
     private lateinit var channelInfoLayout: LinearLayout
     private lateinit var tvChannelName: TextView
@@ -81,7 +86,6 @@ class NativePlayerActivity : AppCompatActivity() {
         volumeLayout.visibility = View.GONE
         keyGuideLayout.visibility = View.GONE
         seekBar.visibility = View.GONE
-        // pauseInfoLayout stays until play resumes
     }
 
     private val updateProgressAction = object : Runnable {
@@ -93,7 +97,6 @@ class NativePlayerActivity : AppCompatActivity() {
                     seekBar.progress = min(current, Int.MAX_VALUE.toLong()).toInt()
                     tvTimeInfo.text = String.format(Locale.getDefault(), "%s / %s", formatTime(current), formatTime(duration))
                     
-                    // Progress Update to Flutter (Broadcast) - Only when playing - Every 60 seconds
                     if (p.isPlaying && current % 60000 < 1000) {
                         saveCurrentPosition()
                     }
@@ -125,7 +128,15 @@ class NativePlayerActivity : AppCompatActivity() {
         currentIndex = intent.getIntExtra("CURRENT_INDEX", 0)
 
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        gestureDetector = GestureDetector(this, this)
+        gestureDetector.setOnDoubleTapListener(this)
+
         playerView = findViewById(R.id.native_player_view)
+        playerView.setOnTouchListener { _, event -> 
+            gestureDetector.onTouchEvent(event)
+            true 
+        }
+
         channelInfoLayout = findViewById(R.id.channel_info_layout)
         tvChannelName = findViewById(R.id.tv_channel_name)
         tvTimeInfo = findViewById(R.id.tv_time_info)
@@ -135,6 +146,16 @@ class NativePlayerActivity : AppCompatActivity() {
         volumeLayout = findViewById(R.id.volume_layout)
         tvVolumeLevel = findViewById(R.id.tv_volume_level)
 
+        // Mobile Button Support
+        findViewById<View>(R.id.btn_subtitles).setOnClickListener { cycleTracks(C.TRACK_TYPE_TEXT) }
+        findViewById<View>(R.id.btn_audio).setOnClickListener { cycleTracks(C.TRACK_TYPE_AUDIO) }
+        findViewById<View>(R.id.btn_quality).setOnClickListener { cycleTracks(C.TRACK_TYPE_VIDEO) }
+        findViewById<View>(R.id.btn_aspect).setOnClickListener { cycleAspectRatio() }
+        findViewById<View>(R.id.btn_favorite).setOnClickListener { toggleFavorite() }
+
+        // Make info panel clickable for mobile
+        ivFavorite.setOnClickListener { toggleFavorite() }
+        
         pauseInfoLayout = findViewById(R.id.pause_info_layout)
         ivPausePoster = findViewById(R.id.iv_pause_poster)
         tvPauseTitle = findViewById(R.id.tv_pause_title)
@@ -144,6 +165,84 @@ class NativePlayerActivity : AppCompatActivity() {
 
         prepareAndPlay()
     }
+
+    // --- Gesture Implementation ---
+
+    override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+        if (channelInfoLayout.visibility == View.VISIBLE) {
+            hideRunnable.run()
+        } else {
+            showOSD()
+        }
+        return true
+    }
+
+    override fun onDoubleTap(e: MotionEvent): Boolean {
+        togglePlayPause()
+        return true
+    }
+
+    override fun onDoubleTapEvent(e: MotionEvent): Boolean = false
+
+    override fun onDown(e: MotionEvent): Boolean = true
+    override fun onShowPress(e: MotionEvent) {}
+    override fun onSingleTapUp(e: MotionEvent): Boolean = false
+    override fun onScroll(e1: MotionEvent?, e2: MotionEvent, distanceX: Float, distanceY: Float): Boolean = false
+    override fun onLongPress(e: MotionEvent) { toggleFavorite() }
+
+    override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+        if (e1 == null) return false
+        val diffX = e2.x - e1.x
+        val diffY = e2.y - e1.y
+        
+        if (abs(diffX) > abs(diffY)) {
+            // Horizontal Swipe
+            if (abs(diffX) > 100 && abs(velocityX) > 100) {
+                player?.let { p ->
+                    if (p.duration != C.TIME_UNSET && p.duration > 0) {
+                        // VOD - Seeking
+                        if (diffX > 0) {
+                            val safePos = min(p.currentPosition + 30000, p.duration)
+                            p.seekTo(safePos); showOSD(); showStatus("30sn >>")
+                        } else {
+                            val safePos = max(p.currentPosition - 10000, 0L)
+                            p.seekTo(safePos); showOSD(); showStatus("<< 10sn")
+                        }
+                    } else {
+                        // Live - Volume
+                        if (diffX > 0) {
+                            audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE, 0)
+                        } else {
+                            audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER, 0)
+                        }
+                        showVolume()
+                    }
+                }
+            }
+        } else {
+            // Vertical Swipe
+            if (abs(diffY) > 100 && abs(velocityY) > 100) {
+                if (diffY > 0) {
+                    // Swipe Down -> Next
+                    val size = channelUrls?.size ?: 1
+                    if (currentIndex < size - 1) { currentIndex++; prepareAndPlay() }
+                } else {
+                    // Swipe Up -> Previous
+                    if (currentIndex > 0) { currentIndex--; prepareAndPlay() }
+                }
+            }
+        }
+        return true
+    }
+
+    private fun togglePlayPause() {
+        player?.let { p ->
+            if (p.isPlaying) { p.pause(); showOSD() }
+            else { p.play(); showOSD() }
+        }
+    }
+
+    // --- End Gestures ---
 
     private fun prepareAndPlay() {
         mainHandler.removeCallbacks(prepareRunnable)
