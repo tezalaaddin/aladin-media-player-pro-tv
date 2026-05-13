@@ -350,7 +350,7 @@ class _SideNavBar extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'aladinIPTV',
+                      'Aladin Player',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 20,

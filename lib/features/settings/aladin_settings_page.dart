@@ -607,7 +607,7 @@ class _SettingsPageState extends State<SettingsPage>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('aladinIPTV Player Pro', style: TextStyle(color: AppTheme.accent, fontWeight: FontWeight.bold, fontSize: 18)),
+            const Text('Aladin Media Player Pro', style: TextStyle(color: AppTheme.accent, fontWeight: FontWeight.bold, fontSize: 18)),
             const SizedBox(height: 8),
             const Text('Version 2.2.0', style: TextStyle(color: Colors.white70, fontSize: 14)),
             const SizedBox(height: 16),

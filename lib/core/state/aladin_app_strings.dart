@@ -309,7 +309,7 @@ class AppStrings {
     'aspect169':      '16:9',
     'aspect43':       '4:3',
     'aspectFill':     'Doldur',
-    'settingsTitle':  'Aladin Media Player Pro TV',
+    'settingsTitle':  'Aladin Media Player Pro',
     'about':          'Hakkında',
     'developer':      'Geliştirici: Aladin',
     'tabM3U':         'M3U URL',

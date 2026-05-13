@@ -168,7 +168,7 @@ class _Splash extends StatelessWidget {
               const Column(
                 children: [
                   Text(
-                    'aladinIPTV Player Pro',
+                    'Aladin Media Player Pro',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 22,
@@ -221,7 +221,7 @@ class _LangSelect extends StatelessWidget {
               const SizedBox(height: 28),
               const Column(
                 children: [
-                  Text('aladinIPTV Player Pro',
+                  Text('Aladin Media Player Pro',
                       style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
                   Text(
                     'FOR SMART TV',
