@@ -123,18 +123,30 @@ class ChannelService {
   }
 
   Future<void> updateProgressByUrl(String url, int seconds, int totalSeconds) async {
+    if (totalSeconds <= 0) return;
+    
     await _db.writeTxn(() async {
       final matches = await _db.channelModels.filter().urlEqualTo(url).findAll();
       for (final ch in matches) {
-        ch.lastWatched = DateTime.now();
-        ch.watchedSeconds = seconds;
-        ch.totalDurationSeconds = totalSeconds;
+        final percent = (seconds / totalSeconds) * 100;
+        
+        // %3 ile %90 arasında ise kaydet
+        if (percent >= 3 && percent <= 90) {
+          ch.lastWatched = DateTime.now();
+          ch.watchedSeconds = seconds;
+          ch.totalDurationSeconds = totalSeconds;
+        } else if (percent > 90) {
+          // %90'ı geçmişse izlenmiş say ve listeden çıkar (pos=0 yap)
+          ch.watchedSeconds = 0;
+          ch.lastWatched = null; 
+        }
+
         await _db.channelModels.put(ch);
       }
     });
   }
 
-  /// Returns items that are partially watched (between 1% and 90%)
+  /// Returns items that are partially watched (between 3% and 90%)
   Future<List<ChannelModel>> getContinueWatching(int playlistId, {int limit = 20}) async {
     final all = await _db.channelModels
         .filter()
@@ -146,7 +158,7 @@ class ChannelService {
     return all.where((ch) {
       if (ch.totalDurationSeconds <= 0) return false;
       final percent = (ch.watchedSeconds / ch.totalDurationSeconds) * 100;
-      return percent >= 5 && percent <= 90;
+      return percent >= 3 && percent <= 90;
     }).take(limit).toList();
   }
 

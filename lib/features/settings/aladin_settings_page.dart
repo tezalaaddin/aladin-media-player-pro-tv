@@ -421,31 +421,34 @@ class _SettingsPageState extends State<SettingsPage>
     );
   }
 
-  Widget _landscape(AppState state, AppStrings s) => Row(children: [
-        Expanded(
-            flex: 5,
-            child: Column(children: [
-              _tabBar(s),
-              Expanded(
-                child: TabBarView(controller: _tabs, children: [
-                  _m3uForm(state, s),
-                  _xtForm(state, s),
-                  _locForm(state, s)
-                ]),
-              ),
-              if (_status.isNotEmpty) _statusRow(),
-              const SizedBox(height: 10),
-            ])),
-        const VerticalDivider(width: 1, color: AppTheme.divider),
-        Expanded(
-            flex: 4,
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-              child: Text(s.savedPlaylists, style: AppTheme.headingMedium, maxLines: 1, overflow: TextOverflow.ellipsis)),
-          Expanded(child: _playlistList(state, s)),
-        ])),
-      ]);
+  Widget _landscape(AppState state, AppStrings s) => Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+              flex: 3,
+              child: Column(children: [
+                _tabBar(s),
+                Expanded(
+                  child: TabBarView(controller: _tabs, children: [
+                    _m3uForm(state, s),
+                    _xtForm(state, s),
+                    _locForm(state, s)
+                  ]),
+                ),
+                if (_status.isNotEmpty) _statusRow(),
+                const SizedBox(height: 10),
+              ])),
+          const VerticalDivider(width: 1, color: AppTheme.divider),
+          Expanded(
+              flex: 2,
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+                child: Text(s.savedPlaylists, style: AppTheme.headingMedium, maxLines: 1, overflow: TextOverflow.ellipsis)),
+            Expanded(child: _playlistList(state, s)),
+          ])),
+        ],
+      );
 
   Widget _portrait(AppState state, AppStrings s) => Column(children: [
         _tabBar(s),
@@ -659,7 +662,7 @@ class _SettingsPageState extends State<SettingsPage>
       _TVTextField(
         controller: _m3uUrl,
         focusNode: _fnM3uUrl,
-        autofocus: true, // Açılışta ilk alan odaklı gelsin
+        autofocus: true,
         label: 'M3U URL',
         hint: 'http://...',
         action: TextInputAction.next,
@@ -785,6 +788,116 @@ class _SettingsPageState extends State<SettingsPage>
   );
 }
 
+class _TVTextField extends StatefulWidget {
+  final TextEditingController controller;
+  final FocusNode? focusNode;
+  final String label;
+  final String? hint;
+  final bool obscure;
+  final bool autofocus;
+  final TextInputAction action;
+  final ValueChanged<String>? onSubmitted;
+
+  const _TVTextField({
+    required this.controller,
+    this.focusNode,
+    required this.label,
+    this.hint,
+    this.obscure = false,
+    this.autofocus = false,
+    required this.action,
+    this.onSubmitted,
+  });
+
+  @override
+  State<_TVTextField> createState() => _TVTextFieldState();
+}
+
+class _TVTextFieldState extends State<_TVTextField> {
+  late FocusNode _navNode; 
+  late FocusNode _textNode; 
+  bool _isEditing = false;
+  bool _isFocused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _navNode = FocusNode();
+    _textNode = widget.focusNode ?? FocusNode(skipTraversal: true);
+    
+    _navNode.addListener(() { if(mounted) setState(() => _isFocused = _navNode.hasFocus); });
+    
+    _textNode.onKeyEvent = (node, event) {
+      if (event is! KeyDownEvent) return KeyEventResult.ignored;
+      final key = event.logicalKey;
+
+      // 1. GERİ TUŞU: Kutucuktan çık ama sayfayı kapatma
+      if (key == LogicalKeyboardKey.escape || key.keyId == 0x100000004) {
+        _navNode.requestFocus();
+        SystemChannels.textInput.invokeMethod('TextInput.hide');
+        return KeyEventResult.handled; 
+      }
+
+      // 2. ENTER ENGELLEME: Sadece sanal klavyedeki butona izin ver
+      if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.select) {
+        return KeyEventResult.handled; 
+      }
+      return KeyEventResult.ignored;
+    };
+  }
+
+  @override
+  void dispose() {
+    _navNode.dispose();
+    if (widget.focusNode == null) _textNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+      focusNode: _navNode,
+      autofocus: widget.autofocus,
+      onKeyEvent: (node, event) {
+        if (_isEditing) return KeyEventResult.ignored;
+        if (event is KeyDownEvent) {
+          if (event.logicalKey == LogicalKeyboardKey.select || event.logicalKey == LogicalKeyboardKey.enter) {
+            setState(() => _isEditing = true);
+            _textNode.requestFocus();
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: (_isFocused || _isEditing) ? AppTheme.accent : Colors.transparent, width: 3),
+        ),
+        child: TextField(
+          controller: widget.controller,
+          focusNode: _textNode,
+          obscureText: widget.obscure,
+          textInputAction: widget.action,
+          style: const TextStyle(color: Colors.white),
+          onSubmitted: (val) {
+            _navNode.requestFocus();
+            widget.onSubmitted?.call(val);
+          },
+          decoration: InputDecoration(
+            labelText: widget.label,
+            hintText: widget.hint,
+            filled: true,
+            fillColor: AppTheme.card,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // ── TV UI Components ─────────────────────────────────────────────────────────
 
 class _TVDialogButton extends StatefulWidget {
@@ -810,7 +923,7 @@ class _TVDialogButtonState extends State<_TVDialogButton> {
   @override
   Widget build(BuildContext context) {
     return Focus(
-      autofocus: widget.isPrimary, // Onay butonu otomatik odaklanacak
+      autofocus: widget.isPrimary,
       onFocusChange: (v) => setState(() => _focused = v),
       onKeyEvent: (node, event) {
         if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.select || event.logicalKey == LogicalKeyboardKey.enter)) {
@@ -826,24 +939,11 @@ class _TVDialogButtonState extends State<_TVDialogButton> {
           margin: const EdgeInsets.symmetric(horizontal: 4),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           decoration: BoxDecoration(
-            color: _focused 
-                ? (widget.isDanger ? Colors.redAccent : AppTheme.accent) 
-                : (widget.isPrimary ? AppTheme.card : Colors.transparent),
+            color: _focused ? (widget.isDanger ? Colors.redAccent : AppTheme.accent) : (widget.isPrimary ? AppTheme.card : Colors.transparent),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: _focused ? Colors.white : (widget.isPrimary ? AppTheme.accent : Colors.transparent),
-              width: 2,
-            ),
-            boxShadow: _focused ? [BoxShadow(color: (widget.isDanger ? Colors.red : AppTheme.accent).withValues(alpha:0.4), blurRadius: 10)] : null,
+            border: Border.all(color: _focused ? Colors.white : (widget.isPrimary ? AppTheme.accent : Colors.transparent), width: 2),
           ),
-          child: Text(
-            widget.label,
-            style: TextStyle(
-              color: _focused ? Colors.white : (widget.isDanger ? Colors.redAccent : (widget.isPrimary ? AppTheme.accent : AppTheme.textMuted)),
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-            ),
-          ),
+          child: Text(widget.label, style: TextStyle(color: _focused ? Colors.white : (widget.isDanger ? Colors.redAccent : (widget.isPrimary ? AppTheme.accent : AppTheme.textMuted)), fontWeight: FontWeight.bold, fontSize: 14)),
         ),
       ),
     );
@@ -879,116 +979,8 @@ class _TVFocusWrapperState extends State<_TVFocusWrapper> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: _isFocused ? AppTheme.accent : Colors.transparent, width: 3),
-            boxShadow: _isFocused ? [BoxShadow(color: AppTheme.accent.withValues(alpha:0.3), blurRadius: 10)] : null,
           ),
           child: widget.child,
-        ),
-      ),
-    );
-  }
-}
-
-class _TVTextField extends StatefulWidget {
-  final TextEditingController controller;
-  final FocusNode? focusNode;
-  final String label;
-  final String? hint;
-  final bool obscure;
-  final bool autofocus;
-  final TextInputAction action;
-  final ValueChanged<String>? onSubmitted;
-
-  const _TVTextField({
-    required this.controller,
-    this.focusNode,
-    required this.label,
-    this.hint,
-    this.obscure = false,
-    this.autofocus = false,
-    required this.action,
-    this.onSubmitted,
-  });
-
-  @override
-  State<_TVTextField> createState() => _TVTextFieldState();
-}
-
-class _TVTextFieldState extends State<_TVTextField> {
-  late FocusNode _internalNode;
-  bool _isFocused = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _internalNode = widget.focusNode ?? FocusNode();
-    _internalNode.addListener(_onFocusChange);
-  }
-
-  @override
-  void dispose() {
-    _internalNode.removeListener(_onFocusChange);
-    if (widget.focusNode == null) _internalNode.dispose();
-    super.dispose();
-  }
-
-  void _onFocusChange() {
-    if (mounted) setState(() => _isFocused = _internalNode.hasFocus);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Focus(
-      onKeyEvent: (node, event) {
-        if (event is KeyDownEvent) {
-          // TV OK / ENTER -> Aktif et ve klavyeyi aç
-          if (event.logicalKey == LogicalKeyboardKey.select || 
-              event.logicalKey == LogicalKeyboardKey.enter) {
-            _internalNode.requestFocus();
-            return KeyEventResult.ignored; // TextField'ın kendi işlemesine izin ver
-          }
-          // YUKARI / AŞAĞI -> Text alanından çıkış yap
-          if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-            FocusScope.of(context).focusInDirection(TraversalDirection.up);
-            return KeyEventResult.handled;
-          }
-          if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-            FocusScope.of(context).focusInDirection(TraversalDirection.down);
-            return KeyEventResult.handled;
-          }
-          // GERİ -> Odağı bırak ve klavyeyi kapat
-          if (event.logicalKey == LogicalKeyboardKey.backspace || 
-              event.logicalKey == LogicalKeyboardKey.escape) {
-            _internalNode.unfocus();
-            SystemChannels.textInput.invokeMethod('TextInput.hide');
-            return KeyEventResult.handled;
-          }
-        }
-        return KeyEventResult.ignored;
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: _isFocused ? AppTheme.accent : Colors.transparent, width: 3),
-        ),
-        child: TextField(
-          controller: widget.controller,
-          focusNode: _internalNode,
-          autofocus: widget.autofocus,
-          obscureText: widget.obscure,
-          textInputAction: widget.action,
-          onSubmitted: (val) {
-            widget.onSubmitted?.call(val);
-          },
-          scrollPadding: const EdgeInsets.only(bottom: 150),
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            labelText: widget.label,
-            hintText: widget.hint,
-            filled: true,
-            fillColor: AppTheme.card,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-          ),
         ),
       ),
     );
@@ -1039,7 +1031,6 @@ class _TVButtonState extends State<_TVButton> {
             color: _isFocused ? AppTheme.accent : AppTheme.card,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: _isFocused ? Colors.white : Colors.transparent, width: 2),
-            boxShadow: _isFocused ? [BoxShadow(color: AppTheme.accent.withValues(alpha:0.4), blurRadius: 10)] : null,
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -1058,8 +1049,6 @@ class _TVButtonState extends State<_TVButton> {
     );
   }
 }
-
-// ── _PTile ────────────────────────────────────────────────────────────────────
 
 class _PTile extends StatefulWidget {
   final PlaylistModel p;
@@ -1089,23 +1078,17 @@ class _PTileState extends State<_PTile> {
               widget.p.totalCount > 0 ? widget.onSelect() : _promptImport(context, s, state);
               return KeyEventResult.handled;
             }
-            if (event.logicalKey == LogicalKeyboardKey.contextMenu || event.logicalKey == LogicalKeyboardKey.f10) {
-              _showOptions(context, s);
-              return KeyEventResult.handled;
-            }
           }
           return KeyEventResult.ignored;
         },
         child: GestureDetector(
           onTap: () => widget.p.totalCount > 0 ? widget.onSelect() : _promptImport(context, s, state),
-          onLongPress: () => _showOptions(context, s),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             decoration: BoxDecoration(
               color: AppTheme.card,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: _isFocused ? AppTheme.accent : (widget.active ? AppTheme.accent.withValues(alpha:0.5) : Colors.transparent), width: 3),
-              boxShadow: _isFocused ? [BoxShadow(color: AppTheme.accent.withValues(alpha:0.2), blurRadius: 8)] : null,
             ),
             child: Padding(
               padding: const EdgeInsets.all(12),
@@ -1151,53 +1134,16 @@ class _PTileState extends State<_PTile> {
                     child: Divider(height: 1, color: AppTheme.divider),
                   ),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _TileBtn(icon: Icons.refresh, label: s.update, color: AppTheme.textMuted, onTap: widget.onUpdate),
-                      _TileBtn(icon: Icons.edit, label: s.playlistRename, color: AppTheme.textMuted, onTap: widget.onRename),
-                      _TileBtn(icon: Icons.delete, label: s.delete, color: Colors.redAccent.withValues(alpha: 0.8), onTap: widget.onDelete),
+                      Expanded(child: _TileBtn(icon: Icons.refresh, label: s.update, color: AppTheme.textMuted, onTap: widget.onUpdate)),
+                      Expanded(child: _TileBtn(icon: Icons.edit, label: s.playlistRename, color: AppTheme.textMuted, onTap: widget.onRename)),
+                      Expanded(child: _TileBtn(icon: Icons.delete, label: s.delete, color: Colors.redAccent.withValues(alpha: 0.8), onTap: widget.onDelete)),
                     ],
                   ),
                 ],
               ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  void _showOptions(BuildContext ctx, AppStrings s) {
-    showModalBottomSheet(
-      context: ctx,
-      backgroundColor: AppTheme.card,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(widget.p.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-            ),
-            const Divider(height: 1),
-            ListTile(
-              leading: const Icon(Icons.refresh, color: AppTheme.textPrimary),
-              title: Text(s.update, style: const TextStyle(color: Colors.white)),
-              onTap: () { Navigator.pop(ctx); widget.onUpdate(); },
-            ),
-            ListTile(
-              leading: const Icon(Icons.edit, color: AppTheme.textPrimary),
-              title: Text(s.playlistRename, style: const TextStyle(color: Colors.white)),
-              onTap: () { Navigator.pop(ctx); widget.onRename(); },
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete, color: Colors.redAccent),
-              title: Text(s.delete, style: const TextStyle(color: Colors.redAccent)),
-              onTap: () { Navigator.pop(ctx); widget.onDelete(); },
-            ),
-            const SizedBox(height: 10),
-          ],
         ),
       ),
     );
@@ -1223,37 +1169,31 @@ class _TileBtn extends StatelessWidget {
   final String label;
   final Color color;
   final VoidCallback onTap;
-
   const _TileBtn({required this.icon, required this.label, required this.color, required this.onTap});
-
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 16, color: color),
-            const SizedBox(width: 6),
-            Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w500)),
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                label, 
+                style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w500),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
-}
-
-class _MI extends StatelessWidget {
-  final IconData i;
-  final String l;
-  final bool red;
-  const _MI(this.i, this.l, {this.red = false});
-  @override
-  Widget build(BuildContext c) => Row(children: [
-        Icon(i, color: red ? AppTheme.accent : AppTheme.textPrimary, size: 18),
-        const SizedBox(width: 10),
-        Text(l, style: TextStyle(color: red ? AppTheme.accent : AppTheme.textPrimary)),
-      ]);
 }

@@ -36,7 +36,7 @@ class AladinXtreamParser {
         final m = e as Map<String, dynamic>;
         final id = m['category_id']?.toString();
         // İsimleri mutlaka trimliyoruz
-        final name = m['category_name']?.toString()?.trim();
+        final name = m['category_name']?.toString().trim();
         if (id != null && name != null) {
           map[id] = name;
         }
@@ -59,7 +59,7 @@ class AladinXtreamParser {
       return list.map((e) {
         final m = e as Map<String, dynamic>;
         // Kategori listesi oluştururken de isimleri trimliyoruz
-        final name = m['category_name']?.toString()?.trim() ?? 'Unknown';
+        final name = m['category_name']?.toString().trim() ?? 'Unknown';
         return CategoryModel()
           ..name = name
           ..contentType = type

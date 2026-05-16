@@ -53,7 +53,10 @@ class MainActivity : FlutterActivity() {
                 val ratings = call.argument<List<String>>("ratings")
                 val years = call.argument<List<String>>("years")
                 val types = call.argument<List<String>>("types")
+                val favs = call.argument<List<Boolean>>("favs")
+                val positions = call.argument<List<Int>>("positions")
                 val index = call.argument<Int>("index") ?: 0
+                val i18n = call.argument<Map<String, String>>("i18n")
                 
                 val intent = Intent(this, NativePlayerActivity::class.java).apply {
                     putStringArrayListExtra("URL_LIST", if (urls != null) ArrayList(urls) else ArrayList())
@@ -63,7 +66,14 @@ class MainActivity : FlutterActivity() {
                     putStringArrayListExtra("RATING_LIST", if (ratings != null) ArrayList(ratings) else ArrayList())
                     putStringArrayListExtra("YEAR_LIST", if (years != null) ArrayList(years) else ArrayList())
                     putStringArrayListExtra("TYPE_LIST", if (types != null) ArrayList(types) else ArrayList())
+                    putExtra("FAV_LIST", if (favs != null) ArrayList(favs) else ArrayList<Boolean>())
+                    putExtra("POS_LIST", if (positions != null) ArrayList(positions) else ArrayList<Int>())
                     putExtra("CURRENT_INDEX", index)
+                    if (i18n != null) {
+                        for ((key, value) in i18n) {
+                            putExtra("i18n_$key", value)
+                        }
+                    }
                 }
                 startActivity(intent)
                 result.success(true)

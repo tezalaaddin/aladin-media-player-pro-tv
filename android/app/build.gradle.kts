@@ -15,7 +15,7 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.aladin.iptv.player.pro"
-    compileSdk = 35
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -30,7 +30,7 @@ android {
     defaultConfig {
         applicationId = "com.aladin.iptv.player.pro"
         minSdk = flutter.minSdkVersion
-        targetSdk = 35
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
@@ -71,9 +71,14 @@ flutter {
 dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("androidx.media3:media3-exoplayer:1.3.1")
+    implementation("androidx.media3:media3-exoplayer-hls:1.3.1")
+    implementation("androidx.media3:media3-exoplayer-rtsp:1.3.1")
     implementation("androidx.media3:media3-ui:1.3.1")
     implementation("androidx.media3:media3-common:1.3.1")
-}
+    
+    // Manuel olarak eklediğimiz FFmpeg kütüphanesi (AAR)
+    implementation(files("libs/media3-ffmpeg.aar"))
+    }
 
 configurations.all {
     resolutionStrategy {

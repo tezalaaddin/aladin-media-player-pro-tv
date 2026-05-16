@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import '../../core/models/aladin_channel_model.dart';
 import '../../core/models/aladin_playlist_model.dart';
+import '../../core/state/aladin_app_state.dart';
 import '../series/aladin_series_page.dart';
 
 class PlayerPage extends StatefulWidget {
@@ -56,6 +58,9 @@ class _PlayerPageState extends State<PlayerPage> {
 
   Future<void> _launchNativePlayer() async {
     try {
+      final state = context.read<AppState>();
+      final s = state.s;
+      
       final index = widget.playlist.indexOf(widget.channel);
       // Playlist'teki boş URL'leri filtrele — native player'a sadece oynatılabilir içerik gönder
       final playable = widget.playlist.where((e) => e.url.trim().isNotEmpty).toList();
@@ -68,6 +73,8 @@ class _PlayerPageState extends State<PlayerPage> {
       final ratings      = playable.map((e) => e.imdbRating ?? '').toList();
       final years        = playable.map((e) => e.tmdbYear ?? '').toList();
       final types        = playable.map((e) => e.contentType).toList();
+      final favs         = playable.map((e) => e.isFavorite).toList();
+      final positions    = playable.map((e) => e.watchedSeconds).toList();
 
       await _exoChannel.invokeMethod('playNative', {
         'urls':         urls,
@@ -77,7 +84,29 @@ class _PlayerPageState extends State<PlayerPage> {
         'ratings':      ratings,
         'years':        years,
         'types':        types,
+        'favs':         favs,
+        'positions':    positions,
         'index':        filteredIndex >= 0 ? filteredIndex : 0,
+        // Localization
+        'i18n': {
+          'subtitles': s.subtitles,
+          'audio': s.audio,
+          'quality': s.quality,
+          'aspect': s.screenRatio,
+          'added': s.addedToFav,
+          'removed': s.removedFromFav,
+          'off': s.off,
+          'favorites_short': s.favoritesShort,
+          'guide_channel': s.guideChannel,
+          'guide_seek': s.guideSeek,
+          'guide_volume': s.guideVolume,
+          'aspect_fit': s.aspectFit,
+          'aspect_fill': s.aspectFill,
+          'aspect_zoom': s.aspectZoom,
+          'loading': s.checkingConnection,
+          'error': s.streamError,
+          'retry_ok': s.retryWithOk,
+        }
       });
       
       if (mounted) Navigator.pop(context);

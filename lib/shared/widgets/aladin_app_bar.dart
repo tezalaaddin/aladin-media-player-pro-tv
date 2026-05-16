@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/state/aladin_app_state.dart';
 import '../theme/aladin_app_theme.dart';
 
-/// Simplified branded app bar — left: "aladinIPTV Player Pro" label, right: refresh
+/// Simplified branded app bar — left: "aladin Media Player Pro TV" label, right: refresh
 class AladinAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String? title;
   final VoidCallback? onRefresh;

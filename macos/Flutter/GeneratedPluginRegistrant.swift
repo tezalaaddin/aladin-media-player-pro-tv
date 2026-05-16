@@ -10,7 +10,7 @@ import isar_flutter_libs
 import media_kit_libs_macos_video
 import media_kit_video
 import package_info_plus
-import sqflite_darwin
+import sqflite
 import url_launcher_macos
 import video_player_avfoundation
 import volume_controller

@@ -10,6 +10,23 @@
         android:layout_height="match_parent"
         android:focusable="false" />
 
+    <!-- Status / Loading Overlay -->
+    <TextView
+        android:id="@+id/tv_status_overlay"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="60dp"
+        android:background="#88000000"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        android:visibility="gone"
+        android:textStyle="bold" />
+
     <!-- Progress Bar (Sadece VOD için) -->
     <SeekBar
         android:id="@+id/player_seekbar"
@@ -129,6 +146,29 @@
             android:textSize="14sp"
             android:textStyle="bold"
             android:padding="10dp" />
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="20dp"
+            android:background="#44FFFFFF"
+            android:layout_marginHorizontal="10dp" />
+
+        <TextView
+            android:id="@+id/tv_guide_nav"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="↕ Kanal Değiştir"
+            android:textColor="#BBBBBB"
+            android:textSize="13sp"
+            android:layout_marginEnd="15dp" />
+
+        <TextView
+            android:id="@+id/tv_guide_seek"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="↔ İleri/Geri"
+            android:textColor="#BBBBBB"
+            android:textSize="13sp" />
     </LinearLayout>
 
     <!-- Ses Barı -->

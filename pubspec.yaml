@@ -1,7 +1,7 @@
 name: aladin_iptv_pro
-description: aladinIPTV Pro TV — High-Performance Android TV IPTV Player
+description: Aladin Media Player Pro TV — High-Performance Android TV Media Player
 publish_to: 'none'
-version: 2.2.0+1
+version: 2.2.0+8
 
 environment:
   sdk: '>=3.2.0 <4.0.0'
@@ -9,7 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
+  sqflite: 2.3.3+1  # Bu sürümde Baklava uyuşmazlığı yoktur
   # ── Database ──────────────────────────────────────────────────────────────
   isar: ^3.1.0+1
   isar_flutter_libs: ^3.1.0+1
@@ -60,7 +60,7 @@ dev_dependencies:
   isar_generator: ^3.1.0+1
   build_runner: ^2.4.9
   flutter_lints: ^3.0.0
-  analyzer: any
+  analyzer: ^5.13.0
   flutter_launcher_icons: ^0.13.1 # Uygulama logosunu otomatik oluşturmak için
 
 flutter:

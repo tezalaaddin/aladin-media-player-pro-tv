@@ -111,10 +111,11 @@ class PlaylistService {
       for (final ch in batch) {
         if (ch.contentType == 'tv') {
           tv++;
-        } else if (ch.contentType == 'movie')
+        } else if (ch.contentType == 'movie') {
           movie++;
-        else
+        } else {
           series++;
+        }
       }
       onProgress?.call(ImportProgress.saving, total);
     }
@@ -210,10 +211,11 @@ class PlaylistService {
         for (final ch in batch) {
           if (ch.contentType == 'tv') {
             tv++;
-          } else if (ch.contentType == 'movie')
+          } else if (ch.contentType == 'movie') {
             movie++;
-          else
+          } else {
             series++;
+          }
         }
         onProgress?.call(ImportProgress.saving, total);
       }

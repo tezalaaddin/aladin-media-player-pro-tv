@@ -1,17 +1,17 @@
 ---
-name: aladinIPTV Player Pro
+name: aladin Media Player Pro TV
 description: Next-gen IPTV solution with high-performance EPG management and Netflix-style UI.
-version: 2.2.0
+version: 2.2.0+6
 author: tezalaaddin
 tags: [iptv, flutter, media-kit, streaming, isar]
 ---
-# aladinIPTV Player Pro
+# aladin Media Player Pro TV
 
 ## ENGLISH
 ==========
-# Technical Expertise & Project Architecture: aladinIPTV Player Pro
+# Technical Expertise & Project Architecture: aladin Media Player Pro TV
 
-This document outlines the advanced engineering principles, architectural patterns, and technical stack implemented in the development of **aladinIPTV Player Pro**.
+This document outlines the advanced engineering principles, architectural patterns, and technical stack implemented in the development of **aladin Media Player Pro TV**.
 
 ## 🏗️ System Architecture & Performance Optimization
 * **Multi-Threaded Data Processing (Isolates):** Leveraged Dart's `Isolate` (via `compute`) to handle heavy M3U parsing logic. This ensures that even with playlists containing 50,000+ entries, the UI remains responsive at 60 FPS by offloading CPU-intensive tasks to background threads.
@@ -39,11 +39,11 @@ This document outlines the advanced engineering principles, architectural patter
 
 ## TÜRKÇE
 ==========
-# aladinIPTV Player Pro
+# aladin Media Player Pro TV
 
-# 🛠 Teknik Yetkinlikler ve Proje Özellikleri: aladinIPTV Player Pro
+# 🛠 Teknik Yetkinlikler ve Proje Özellikleri: aladin Media Player Pro TV
 
-Bu dosya, **aladinIPTV Player Pro** projesinin geliştirilme sürecinde kullanılan mimari yaklaşımları, teknik becerileri ve uygulanan çözüm yöntemlerini detaylandırmaktadır.
+Bu dosya, **aladin Media Player Pro TV** projesinin geliştirilme sürecinde kullanılan mimari yaklaşımları, teknik becerileri ve uygulanan çözüm yöntemlerini detaylandırmaktadır.
 
 ## 🚀 Temel Mimari ve Performans (Core Architecture)
 * **İzole Veri İşleme (High-Performance Isolate Parsing):** On binlerce satırlık M3U dosyalarının UI thread'ini dondurmadan işlenmesi için Flutter `compute` altyapısı ile asenkron ayrıştırma (parsing) yönetimi.
@@ -69,7 +69,7 @@ Bu dosya, **aladinIPTV Player Pro** projesinin geliştirilme sürecinde kullanı
 
 ---
 
-# AladinIPTV Player Pro — Skill Manifest
+# aladin Media Player Pro TV — Skill Manifest
 ### Version 2.1.0 · Flutter · Android TV
 
 ---
@@ -96,7 +96,7 @@ Bu dosya, **aladinIPTV Player Pro** projesinin geliştirilme sürecinde kullanı
 
 ## 1. Giriş ve Amaç
 
-AladinIPTV Player Pro, kullanıcının kendi IPTV lisansını (M3U URL, Xtream Codes veya yerel .m3u dosyası olarak) getirerek 60.000'i aşkın kanalı; Android TV için tasarlanmış yüksek performanslı bir arayüzle izlemesini sağlar. Uygulama, video oynatımı için ExoPlayer (Media3) tabanlı native Android katmanını, yönetim ve UI için Flutter katmanını kullanır.
+aladin Media Player Pro TV, kullanıcının kendi IPTV lisansını (M3U URL, Xtream Codes veya yerel .m3u dosyası olarak) getirerek 60.000'i aşkın kanalı; Android TV için tasarlanmış yüksek performanslı bir arayüzle izlemesini sağlar. Uygulama, video oynatımı için ExoPlayer (Media3) tabanlı native Android katmanını, yönetim ve UI için Flutter katmanını kullanır.
 
 ---
 
@@ -146,7 +146,7 @@ AladinIPTV Player Pro, kullanıcının kendi IPTV lisansını (M3U URL, Xtream C
 
 
 
-# AladinIPTV Player Pro — Skill Manifest
+# aladin Media Player Pro TV — Skill Manifest
 ### Version 2.0.0 · Flutter · Android TV
 
 ---
@@ -193,7 +193,7 @@ AladinIPTV Player Pro, kullanıcının kendi IPTV lisansını (M3U URL, Xtream C
 
 ## 1. Giriş ve Amaç
 
-AladinIPTV Player Pro, kullanıcının kendi IPTV lisansını (M3U URL, Xtream Codes veya yerel .m3u dosyası olarak) getirerek 60.000'i aşkın kanalı; **Canlı TV**, **Film** ve **Dizi** olmak üzere üç ana kategoride listeleyip izlemesini sağlayan, Android TV için tasarlanmış yüksek performanslı bir IPTV oynatıcı uygulamasıdır. Uygulama içinde hiçbir içerik barındırmaz; tamamen kullanıcı tarafından sağlanan listelerle çalışır. Video oynatımı ExoPlayer (Media3) tabanlı native Android katmanında gerçekleşir; Flutter katmanı navigasyon, liste yönetimi, veritabanı ve UI'den sorumludur.
+aladin Media Player Pro TV, kullanıcının kendi IPTV lisansını (M3U URL, Xtream Codes veya yerel .m3u dosyası olarak) getirerek 60.000'i aşkın kanalı; **Canlı TV**, **Film** ve **Dizi** olmak üzere üç ana kategoride listeleyip izlemesini sağlayan, Android TV için tasarlanmış yüksek performanslı bir IPTV oynatıcı uygulamasıdır. Uygulama içinde hiçbir içerik barındırmaz; tamamen kullanıcı tarafından sağlanan listelerle çalışır. Video oynatımı ExoPlayer (Media3) tabanlı native Android katmanında gerçekleşir; Flutter katmanı navigasyon, liste yönetimi, veritabanı ve UI'den sorumludur.
 
 ---
 
@@ -766,7 +766,7 @@ Buraya import progress ekranının görüntüsünü ekle.
 
 ## Introduction & Purpose
 
-AladinIPTV Player Pro is a high-performance Android TV IPTV player that allows users to bring their own IPTV license (as an M3U URL, Xtream Codes credentials, or local .m3u file) and browse 60,000+ channels across **Live TV**, **Movies**, and **Series** categories. The app holds no content; it works entirely with user-provided playlists. Video playback runs in a native ExoPlayer (Media3) Android layer; Flutter handles navigation, list management, database, and UI.
+aladin Media Player Pro TV is a high-performance Android TV IPTV player that allows users to bring their own IPTV license (as an M3U URL, Xtream Codes credentials, or local .m3u file) and browse 60,000+ channels across **Live TV**, **Movies**, and **Series** categories. The app holds no content; it works entirely with user-provided playlists. Video playback runs in a native ExoPlayer (Media3) Android layer; Flutter handles navigation, list management, database, and UI.
 
 ---
 
@@ -1042,7 +1042,7 @@ Yapılan Temel Düzenlemeler:
 ◦Ana sayfadaki "Veriler senkronize ediliyor" çubuğu kaldırıldı.
 5.Hakkında (About) Bölümü:
 ◦Ayarlar sayfasına bir "Hakkında" butonu eklendi.
-◦Bu bölümde uygulamanın adı, sürümü (v2.2.0) ve geliştirici bilgisi yer alıyor.
+◦Bu bölümde uygulamanın adı, sürümü (v2.2.0+6) ve geliştirici bilgisi yer alıyor.
 ◦GitHub sayfanıza (https://github.com/tezalaaddin) giden tıklanabilir bir bağlantı eklendi.
 6.Sürüm ve Yapılandırma:
 ◦pubspec.yaml dosyasındaki sürüm numarası isteğiniz üzerine 2.2.0+1 olarak güncellendi.
@@ -1113,7 +1113,7 @@ Yapılacak Düzenlemeler:
 
 Telefon kullanıcıları için oynatıcıyı (player) tamamen dokunmatik hale getirdim. Artık sadece TV kumandasıyla değil, parmak hareketlerinizle de tüm kontrollere hakim olabilirsiniz.
 Eklenen Dokunmatik Özellikler:
-1.Ekran Hareketleri (Gestures):
+1. Ekran Hareketleri (Gestures):
 ◦Tek Tıklama: Kontrol panelini (OSD) açar veya kapatır.
 ◦Çift Tıklama: Videoyu durdurur veya devam ettirir (Pause/Play).
 ◦Sağ/Sol Kaydırma:
@@ -1121,14 +1121,181 @@ Eklenen Dokunmatik Özellikler:
 ▪Canlı TV: Sesi yükseltir veya alçaltır.
 ◦Yukarı/Aşağı Kaydırma: Bir sonraki veya bir önceki kanala/videoya geçer.
 ◦Uzun Basma: Kanalı veya videoyu favorilere ekler/çıkarır.
-2.Tıklanabilir Kontrol Butonları:
+2. Tıklanabilir Kontrol Butonları:
 ◦Ekranın altındaki renkli rehber yazılarını (Altyazı, Ses, Kalite, Oran, Favori) artık buton gibi kullanabilirsiniz.
 ◦Üzerlerine dokunduğunuzda ilgili ayar (Diller arası geçiş, görüntü oranı vb.) anında değişir.
-3.Hızlı Favori: Kanal isminin yanındaki yıldız ikonuna dokunarak da favori durumunu değiştirebilirsiniz.
+3. Hızlı Favori: Kanal isminin yanındaki yıldız ikonuna dokunarak da favori durumunu değiştirebilirsiniz.
 Yapılan Değişiklikler:
 •NativePlayerActivity.kt: Dokunma sensörü (GestureDetector) entegre edildi ve tüm fonksiyonlar bu sensöre bağlandı.
 •activity_player.xml: Alt kısımdaki yazılar, dokunmaya hassas ve buton olarak işlev görecek şekilde güncellendi.
 Artık hem televizyonda kumandayla hem de cep telefonunda dokunarak profesyonel bir oynatıcı deneyimi elde edeceksiniz.
+
+## V2.2.0+1 Sürüm Notları:
+
+1. Favori Listesi: Player'dan dönünce listenin anında güncellenmemesi (özellikle mobil/tablet kullanıcıları için) düzeldi.
+2. Player Dili: Altyazı, Ses, Kalite vb. menülerin İngilizce veya diğer dillerde de doğru görünmesi sağlandı.
+3. IMDb/TMDB: İçerik özetlerinin kullanıcının seçtiği dile göre (İngilizce ise İngilizce, Türkçe ise Türkçe) getirilmesi sağlandı.
+Tüm diller için player tarafındaki eksik çevirileri tamamladım. Artık uygulama hangi dildeyse, video oynatıcıdaki tüm menüler (Altyazı, Ses, Kalite, Ekran Oranı, Favori Uyarıları vb.) otomatik olarak o dilde görünecektir.
+Yapılanlar:
+4. Almanca, Fransızca, İspanyolca, Rusça, Çince ve Arapça dillerine video oynatıcıya özel terimler eklendi.
+5. Daha önce sadece İngilizce ve Türkçe için yaptığımız yapılandırma, tüm dilleri kapsayacak şekilde genişletildi.
+6. Native tarafa gönderilen "loading", "error", "added", "removed" gibi tüm dinamik metinler artık AppStrings üzerinden çekiliyor.
+Bu sayede ileride 50 dil de ekleseniz, tek yapmanız gereken AppStrings içine yeni dilin karşılıklarını yazmak olacak; player tarafı bunu otomatik olarak tanıyacaktır.
+
+## V2.2.0+2 Sürüm Notları:
+
+İleri/Geri Sarma Deneyimini Profesyonelleştirdik!
+Sizin için hem TV kumandası hem de mobil cihazlarda çok daha kullanıcı dostu bir "Birikimli Atlama" (Accumulative Seeking) sistemi kurdum.
+Neler Değişti?
+1.Birikimli Atlama (VOD):
+◦Artık sağ/sol tuşuna (veya mobilde kaydırmaya) her bastığınızda oynatıcı anında atlayıp videoyu takmıyor.
+◦Bunun yerine ekranda saniye sayacı çıkar: +30sn, +60sn, +120sn...
+◦Kullanıcı basmayı bıraktığı anda (800ms sonra) oynatıcı tek seferde hedef noktaya gider. Bu, özellikle düşük donanımlı Smart TV'lerde videonun donmasını ve "decoder" kilitlenmelerini engeller.
+2.Görsel Geribildirim:
+◦Sarma işlemi sırasında ne kadar ileri/geri gidildiği ekranda büyük ve net bir şekilde görünür.
+◦Sarma bittiğinde ekran otomatik olarak temizlenir.
+3.Mobil & TV Uyumu:
+◦TV: Kumanda sağ/sol tuşları birikimli çalışır.
+◦Mobil: Ekranda sağa/sola hızlı parmak kaydırma (swipe) hareketi aynı birikimli mantığı tetikler.
+Bu haliyle uygulama, modern bir Netflix veya YouTube deneyimine çok daha yakın bir kullanım sunacaktır.
+
+## V2.2.0+3 Sürüm Notları:
+
+Daha Akıllı Oynatıcı ve Kesin Favori Çözümü Yayında!
+İstediğiniz tüm iyileştirmeleri uyguladım:
+1.İzleme Çubuğuyla (SeekBar) Sarma: Telefon veya tabletinizde videonun altındaki kırmızı çubuğa dokunarak veya sürükleyerek videoyu istediğiniz saniyeye anında kaydırabilirsiniz.
+2.Saat:Dakika:Saniye Formatı: Artık kumanda veya parmak hareketiyle ileri sararken sadece "+30s" değil, videonun tam olarak hangi zamana (örn: 01:12:45 (+30s)) gideceğini göreceksiniz.
+3.Dokunmatik Favori Senkronizasyonu: Telefon ve tabletlerde butona basınca favorilere eklenmeme sorunu Android-Flutter arasındaki veri iletimi (Intent) seviyesinde düzeltildi. Artık hem TV'de hem mobilde favoriye eklediğiniz kanal anında listelerinize yansıyacak.
+
+## V2.2.0+4 Sürüm Notları:
+
+Yapılan Temel İyileştirmeler:
+1.Favori Senkronizasyonu (Kesin Çözüm):
+◦Artık Player açıldığında Flutter'daki favori listesini (isFavorite değerlerini) doğrudan içeri alıyor.
+◦Dokunmatik ekranda favoriye dokunduğunuzda Player kendi içindeki listeyi anında güncelliyor ve Flutter tarafına "bu kanalı favori yap" komutunu çok daha sağlam bir yolla gönderiyor.
+◦Böylece telefon/tablette favoriye eklediğiniz kanal, player'dan çıktığınız anda ilgili sayfalarda görünür olacaktır.
+2."Kaldığın Yerden" (%3 - %90 Kuralı):
+◦ChannelService içindeki ilerleme kaydetme mantığını güncelledim.
+◦Bir içerik toplam süresinin en az %3'ü izlendiğinde listeye eklenir.
+◦Eğer izleme oranı %90'ı geçerse, video bitmiş sayılır ve "Kaldığın Yerden" listesinden otomatik olarak temizlenir.
+3.Hassas Zaman Senkronizasyonu:
+◦Player açılırken Flutter'daki watchedSeconds (izlenen saniye) bilgisini alıyor ve videoyu tam kaldığı saniyeden başlatıyor.
+◦Video durdurulduğunda veya kapatıldığında mevcut saniye milisaniyesi milisaniyesine Flutter veritabanına geri gönderiliyor.
+Bu sürümle birlikte hem TV kumandasıyla hem de dokunmatik cihazlarla veri kaybı yaşamadan tam uyumlu bir deneyim elde edeceksiniz.
+
+##  Versiyon 2.2.0 (Build 2) Güncelleme Notları:
+What's New:
+•Smart Seeking Experience: Improved video seeking for Movies and Series with an accumulative timer and visual timestamp feedback.
+•Full Multi-Language Support: The video player interface (Subtitles, Audio, Quality, Aspect Ratio) is now fully localized in 8 languages.
+•Enhanced Favorites Sync: Fixed an issue where favorites added on touch devices were not syncing correctly with the main list.
+•Optimized Continue Watching: New logic implemented to track progress between 3% and 90% completion for a cleaner library experience.
+•TV Remote Fix: Resolved a focus issue where the OK/Enter button was triggering favorites instead of Play/Pause on some Android TV remotes.
+•Performance & Stability: Improved data synchronization between the native player and local database for smoother transitions.
+Kısa Versiyon (Eğer karakter sınırı azsa):
+•Enhanced video seeking with visual timestamps for VOD content.
+•Fixed favorites synchronization issues on mobile and tablet devices.
+•Localized the player interface for all supported 8 languages.
+•Improved "Continue Watching" logic (3% - 90% threshold).
+•Resolved TV remote OK/Enter button focus conflicts.
+
+##  Versiyon 2.2.0 (Build 3) Güncelleme Notları:
+
+Projenizdeki tüm "aladinIPTV" ve "aladinIptv" ifadelerini marka isminiz olan "Aladin Media Player" ile güncelledim. Ayrıca bu değişiklikleri v.2.2.0+3 sürümüne dahil ettim.
+Yapılan Temel Değişiklikler:
+1.Versiyon Güncelleme: pubspec.yaml dosyası v.2.2.0+3 olarak güncellendi.
+2.Marka İsmi (Görünür İsimler):
+◦README.md başlığı ve içerikleri "Aladin Media Player Pro TV" olarak güncellendi.
+◦Uygulama içi ayarlar sayfasındaki "aladinIPTV Player Pro" yazıları (tüm dillerde) "Aladin Media Player Pro TV" olarak düzeltildi.
+◦pubspec.yaml içindeki uygulama açıklaması profesyonel hale getirildi.
+3.Teknik Uyum (Bundle IDs):
+◦iOS ve macOS tarafındaki örnek paket adları (com.example.aladinIptvPro), Android paket adınızla aynı olacak şekilde com.aladin.iptv.player.pro olarak güncellendi. Bu, uygulamanın tüm platformlarda aynı kimliğe sahip olmasını sağlar.
+Bu değişiklikler kodun çalışmasını etkilemeyecek, sadece uygulamanızın daha profesyonel ve tutarlı bir marka imajına sahip olmasını sağlayacaktır.
+
+##  Versiyon 2.2.0 (Build 3) Güncelleme Notları:
+
+Realtek ve benzeri (Amlogic, Rockchip vb.) sertifikasız Android TV box cihazlarındaki uyumluluk sorununu kökten çözmek için AndroidManifest.xml dosyanızda kapsamlı bir güncelleme yaptım.
+Neden "Uyumsuz" Görünüyordu?
+Google Play Store, eğer uygulamanızda aksi belirtilmemişse, otomatik olarak bazı donanımların (dokunmatik ekran, kamera, GPS, telefon özelliği vb.) var olduğunu varsayar. Realtek tabanlı TV cihazları saf birer TV kutusu oldukları için bu donanımlara sahip değillerdir ve Play Store bu cihazları "donanım yetersizliği" nedeniyle otomatik olarak eler.
+Yapılan Düzelmeler:
+1.Donanım Zorunlulukları Kaldırıldı: AndroidManifest.xml içine sadece dokunmatik değil, TV cihazlarında bulunmayan tüm donanım özelliklerini (Kamera, GPS, Bluetooth, NFC, Mikrofon, Telefon vb.) required="false" (zorunlu değil) olarak ekledim.
+2.Leanback Desteği: android.software.leanback özelliğini de required="false" yaparak, cihaz tam bir Android TV sertifikasına sahip olmasa bile uygulamanın yüklenebilmesini sağladım.
+3.Versiyon Güncelleme: Bu önemli uyumluluk yaması için versiyon numarasını v.2.2.0+4 olarak güncelledim.
+Güncel AndroidManifest.xml içeriğiniz şu şekilde optimize edildi:
+Resource XML
+<uses-feature android:name="android.software.leanback" android:required="false" />
+<uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+<uses-feature android:name="android.hardware.touchscreen.multitouch" android:required="false" />
+<uses-feature android:name="android.hardware.faketouch" android:required="false" />
+<uses-feature android:name="android.hardware.telephony" android:required="false" />
+<uses-feature android:name="android.hardware.camera" android:required="false" />
+<!-- ... ve diğer tüm donanımlar zorunlu olmaktan çıkarıldı -->
+Bu değişikliklerden sonra alacağınız yeni .aab dosyası, Play Store tarafından Realtek ve diğer tüm Android TV kutularıyla tam uyumlu olarak görülecektir.
+
+##  Versiyon 2.2.0 (Build 5) Güncelleme Notları:
+
+Uygulanan Akıllı Mekanizma:
+1.15 Saniyelik Akıllı Zamanlayıcı: Yayın açılırken (Buffering) arka planda 15 saniyelik bir geri sayım başlar.
+2.Otomatik Yeniden Deneme (Max 3 Kez): Eğer 15 saniye içinde yayın açılmazsa, uygulama arka planda kanalı otomatik olarak yeniler. Bu işlem kullanıcıya hissettirmeden 3 kez tekrarlanır. (Genellikle anlık sunucu kopmalarında 2. veya 3. denemede yayın açılır).
+3.Kritik Hata Durumu: 3 otomatik deneme de başarısız olursa, ekranda şu mesaj belirir: "Yayın Açılamadı. Yeniden denemek için OK tuşuna basın."
+4.Güvenli Kumanda Kontrolü:
+◦Bu hata mesajı ekrandayken kumandadaki "OK" tuşuna basıldığında, uygulama tüm süreci sıfırlayıp yayını manuel olarak tekrar açmaya çalışır.
+◦Normal oynatma sırasında ise "OK" tuşu eskisi gibi Play/Pause işlevini yapmaya devam eder.
+5.Çoklu Dil Desteği: "OK tuşuna basın" mesajı dahil tüm bu uyarılar seçili 8 dile göre otomatik çevrilir.
+Neden Bu Yöntemi Seçtik? Ekranı gereksiz butonlarla doldurmadık ve kumanda kullanımını zorlaştırmadık. Kullanıcı, uygulamanın vazgeçmediğini ve yayını açmak için çabaladığını görür, bu da uygulamanıza duyulan güveni artırır.
+
+##  Versiyon 2.2.0 (Build 6) Güncelleme Notları:
+
+   Realtek TV box cihazlarında (ve benzeri sertifikasız Android TV kutularında) görünen "uyumsuzluk" sorununun temel nedeni, Google Play Store'un manifest dosyasındaki bazı donanım özelliklerini (dokunmatik ekran, kamera, GPS vb.) varsayılan olarak "zorunlu" kabul etmesidir.
+   Build 3'teki değişikliklere ek olarak, Play Store filtrelerini tamamen aşmak ve uyumluluğu %100'e çıkarmak için şu kritik düzenlemeleri yaptım:
+1.Genişletilmiş Donanım İstisnaları: Sadece dokunmatik ekran değil; TV kutularında bulunmayan ancak kütüphaneler tarafından dolaylı olarak talep edilebilen Akselerometre, Jiroskop, Yakınlık Sensörü, GPS, USB Host, Ethernet ve Ses Çıkış Modları gibi tüm donanımları required="false" olarak manifest dosyasına ekledim.
+2.Cihaz Tipi Tanımlamaları: android.hardware.type.television ve android.hardware.type.settopbox (Set-top box) özelliklerini isteğe bağlı olarak ekleyerek, Play Store'un bu cihazları tanımasını sağladım.
+3.Target SDK Optimizasyonu: targetSdk değerini 35'ten (Android 15), şu an Play Store'un en kararlı kabul ettiği ve TV kutularıyla en uyumlu olan 34 (Android 14) seviyesine çektim.
+4.Min SDK Sabitleme: Projenin en az Android 5.0 (API 21) cihazlarda çalışacağını garanti altına almak için minSdk değerini 21 olarak sabitledim.
+5.Ekran Desteği: TV ekranlarının yüksek çözünürlük ve yoğunluklarını Play Store'a doğru bildirmek için <supports-screens> yapılandırmasını (arka planda) optimize ettim.
+Yapılan Değişiklikler:
+•android/app/src/main/AndroidManifest.xml güncellendi (Kapsamlı özellik listesi eklendi).
+•android/app/build.gradle.kts güncellendi (minSdk: 21, targetSdk: 34).
+•android/build.gradle.kts güncellendi (compileSdkVersion: 34).
+
+##  Versiyon 2.2.0 (Build 7) Güncelleme Notları:
+- Google TV Android 12'de "Oyun kumandası gerekli" uyumluluk hatası düzeltildi
+- Kütüphane seviyesindeki donanım gereksinimleri geçersiz kılınarak cihaz uyumluluğu artırıldı
+- Android TV kumandasında D-pad odağının hızlı atlama sorunu giderildi
+- Sertifikasız Android TV ve set-top box cihazlar için daha geniş destek sağlandı
+
+##  Versiyon 2.2.0 (Build 8) Güncelleme Notları: Kullanıcı sorunları
+1. Backspace Sorunu: Kodunuzda LogicalKeyboardKey.backspace tuşu "Geri" tuşuyla aynı kefeye konulmuş ve "alanı kapat" komutu atanmış. Realtek kumandalar farklı bir kod gönderdiği için onda çalışıyor olabilir, ancak standart klavyelerde ve emülatörlerde Backspace "karakter silme" değil "çıkış" işlemi yapıyor.
+2. Fokus (Odaklanma) Sorunu: _TVTextField içinde iç içe iki odak noktası (Focus widget'ı ve TextField'ın kendi node'u) bulunuyor. Aşağıdan yukarı çıkarken fokus dıştaki kapsayıcıda takılı kalıyor, içteki TextField'a geçmediği için de kenarlık yanmıyor.
+   Bu sorunları gidermek için lib/features/settings/aladin_settings_page.dart dosyasını şu şekilde güncelledim:
+1.Backspace Engeli Kaldırıldı: backspace tuşunun alanı kapatması engellendi, böylece karakter silme işlemi yapılabilecek. Sadece escape ve back (kumanda geri tuşu) alanı kapatacak.
+2.Fokus Akışı İyileştirildi: Dıştaki Focus widget'ının odağı çalması engellendi (canRequestFocus: false). Böylece kumanda ile yukarı/aşağı giderken fokus doğrudan TextField'a düşecek ve kenarlık anında parlayacak.
+3.Backspace (Silme) tuşuna basınca yazı silinecek, uygulamadan veya alandan çıkmayacak.
+4.Aşağıdan yukarıya kumanda ile çıkarken her kutucuk (TextField) doğru şekilde odaklanacak ve kırmızı kenarlığı parlayacak.
+Ayrıca ses sorununa yönelik yaptığım AudioAttributes ve HLS/RTSP kütüphane eklemelerini de Play Store'a göndereceğiniz yeni sürüme dahil etmeyi unutmayın. Yeni oluşturacağınız x86_64 mimarili emülatörde de bu klavye ve fokus düzelmelerini anında test edebilirsiniz.
+   Uygulama arka plana geçtiğinde (Home tuşuna basıldığında) onPause metodu çalışır ancak Player'a açıkça "dur" demezseniz o çalmaya devam eder.
+   Bunu çözmek için NativePlayerActivity.kt dosyasında onPause ve onResume metodlarını şu şekilde güncelledim:
+5.onPause: Uygulama arka plana düştüğü anda player?.pause() komutuyla video ve sesi durduruyoruz.
+6.onResume: Kullanıcı uygulamaya geri döndüğünde player?.play() ile kaldığı yerden devam etmesini sağlıyoruz.
+Eğer uygulamanın arka planda tamamen kapanmasını ve kaynak tüketmemesini isterseniz, onPause yerine onStop içinde releasePlayer() da yapabiliriz. Ancak TV kullanıcıları genellikle uygulamalar arası hızlı geçiş yaptığı için pause/play ikilisi en iyi kullanıcı deneyimini (UX) sağlar. 
+Bu güncelleme ile Home tuşuna bastığınızda ses anında kesilecektir.
+
+##  Versiyon 2.2.0 (Build 9) Güncelleme Notları: Kullanıcı sorunları
+
+1. Android Native Player (ExoPlayer) İyileştirmeleri
+   NativePlayerActivity.kt dosyasında şu güncellemeleri yaptım:
+   •   Extension Mode ON: setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON) olarak güncellendi. Bu sayede cihazın kendi kütüphaneleri yetersiz kaldığında yazılımsal codec'ler (FFmpeg vb. eklenirse) daha agresif şekilde devreye girecek.
+   •   Video Scaling: Player'a setVideoScalingMode(C.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING) eklendi. Bu, özellikle farklı en-boy oranlarındaki yayınlarda ekranın daha profesyonel doldurulmasını ve kare zamanlamasının daha akıcı olmasını sağlar.
+2. Flutter Arayüz ve Taşma (Overflow) Çözümleri
+   SettingsPage üzerinde şu yapısal değişiklikleri yaptım:
+   •   Esnek Kolon Yapısı: Sağ taraftaki playlist listesinin taşmasını engellemek için Row yapısını Expanded ve flex (3:2 oranında) kullanarak yeniden düzenledim. Bu sayede ekran genişliği ne olursa olsun sağdaki liste taşmak yerine kendi alanına sığacak şekilde daralacaktır.
+   •   Text Kırpma (Ellipsis): Playlist kartlarının içindeki (isim ve alt başlık) metinlerin Column içinde maxLines: 1 ve overflow: TextOverflow.ellipsis özellikleri zaten mevcuttu, ancak bunların Expanded bir sütun içinde olduğundan emin olarak, herhangi bir taşma durumunda metnin sonuna otomatik "..." eklenmesini garanti altına aldım.
+   Bu değişiklikler hem uygulamanın düşük donanımlı Android TV'lerde daha stabil çalışmasını sağlayacak hem de "Overdraw" yükünü azaltarak video oynatma performansına olumlu yansıyacaktır.
+
+##  Versiyon 2.2.0 (Build 10) Güncelleme Notları: Ses Problemi Çözüldü
+
+Gelişmiş Ses Desteği: EAC3, AC3 ve DTS ses formatları için yazılımsal çözücü (FFmpeg) entegre edildi. Artık tüm kanallarda ve filmlerde ses sorunsuz oynatılıyor.
+
+
 
 ## UI TARAFI AÇIKLAMASI:
 

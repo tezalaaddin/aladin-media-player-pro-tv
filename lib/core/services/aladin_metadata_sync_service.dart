@@ -23,10 +23,10 @@ class MetadataSyncService extends ChangeNotifier {
 
   /// Starts the sync process for a playlist.
   /// Finds movies and series with missing metadata and updates them.
-  Future<void> startSync(int playlistId) async {
+  Future<void> startSync(int playlistId, {String lang = 'tr'}) async {
     if (_isSyncing) return;
 
-    debugPrint('[MetadataSync] Checking missing metadata for playlist $playlistId...');
+    debugPrint('[MetadataSync] Checking missing metadata for playlist $playlistId (lang: $lang)...');
 
     // Find items with missing metadata
     final missingMovies = await _db.channelModels
@@ -52,10 +52,10 @@ class MetadataSyncService extends ChangeNotifier {
     debugPrint('[MetadataSync] Starting sync for $_totalToSync items.');
 
     // We process in a queue with a delay to respect TMDb rate limits (approx 2 requests/sec)
-    _syncQueue(missingMovies);
+    _syncQueue(missingMovies, lang: lang);
   }
 
-  Future<void> _syncQueue(List<ChannelModel> items) async {
+  Future<void> _syncQueue(List<ChannelModel> items, {String lang = 'tr'}) async {
     for (int i = 0; i < items.length; i++) {
       if (!_isSyncing) break;
 
@@ -67,12 +67,14 @@ class MetadataSyncService extends ChangeNotifier {
           meta = await TmdbService.instance.searchMovie(
             channel.name, 
             year: channel.tmdbYear,
+            lang: lang,
           );
         } else if (channel.contentType == 'series') {
           final sName = channel.seriesName ?? channel.name;
           meta = await TmdbService.instance.searchSeries(
             sName,
             year: channel.tmdbYear,
+            lang: lang,
           );
         }
 

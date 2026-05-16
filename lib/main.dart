@@ -91,6 +91,7 @@ class _AladinAppState extends State<AladinApp>
     super.dispose();
   }
 
+
   Future<void> _boot() async {
     await AladinPrefs.instance.load();
     await IsarService.instance.init();

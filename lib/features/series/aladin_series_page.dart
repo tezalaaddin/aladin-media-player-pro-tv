@@ -324,7 +324,7 @@ class _SeriesPageState extends State<SeriesPage> {
 
   void _onState() {
     final a = context.read<AppState>().active;
-    if (a != null && a.id != _loadedId) _load(a.id);
+    if (a != null) _load(a.id);
   }
 
   Future<void> _load(int id) async {
@@ -429,7 +429,7 @@ class _SeriesPageState extends State<SeriesPage> {
                                 delegate: SliverChildListDelegate([
                                   if (_continueWatching.isNotEmpty)
                                     _SeriesFavStrip(
-                                      title: '⏳ ${state.s.continueWatching ?? "İzlemeye Devam Et"}',
+                                      title: '⏳ ${state.s.continueWatching}',
                                       channels: _continueWatching,
                                       onTap: (ch) => _onSeriesTap(ch, state.active!.id),
                                     ),

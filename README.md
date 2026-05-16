@@ -1,5 +1,5 @@
 <<<<<<< HEAD
-# 📺 aladinIPTV Pro TV
+# 📺 Aladin Media Player Pro TV
 **The Ultimate High-Performance IPTV Player Optimized for Android TV & Smart TV Boxes.**
 
 ---

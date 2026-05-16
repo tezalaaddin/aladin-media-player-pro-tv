@@ -58,9 +58,10 @@ class _LiveTvPageState extends State<LiveTvPage> {
     }
 
     if (a == null) return;
-    if (a.id != _loadedId) {
-      _load(a.id);
-    }
+    
+    // Playlist değişmişse veya sadece favoriler güncellenmişse yükle
+    // Not: AppState notifyListeners() çağrıldığında burası tetiklenir.
+    _load(a.id);
   }
 
   Future<void> _load(int id) async {

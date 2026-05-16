@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../core/models/aladin_category_model.dart';
-import '../core/services/aladin_epg_engine.dart';
 import '../core/services/aladin_metadata_sync_service.dart';
-import '../core/state/aladin_app_prefs.dart';
 import '../core/state/aladin_app_state.dart';
 import '../shared/theme/aladin_app_theme.dart';
 import 'live_tv/aladin_live_tv_page.dart';
@@ -28,6 +26,7 @@ class _MainPageState extends State<MainPage> {
   final List<FocusNode> _navNodes = List.generate(6, (index) => FocusNode());
   final FocusNode _contentFocusNode = FocusNode();
   bool _epgDialogShown = false;
+  DateTime? _lastKeyEventTime;
   
   CategoryModel? _selectedCategory;
 
@@ -47,14 +46,13 @@ class _MainPageState extends State<MainPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final activeId = AppState.instance.active?.id;
+      final state = AppState.instance;
+      final activeId = state.active?.id;
       if (activeId != null) {
-        MetadataSyncService.instance.startSync(activeId);
+        MetadataSyncService.instance.startSync(activeId, lang: state.lang);
       }
     });
   }
-
-  // _checkEpgSync fonksiyonu buradan tamamen kaldırıldı (Ayarlar sayfasına taşındı)
 
   @override
   void dispose() {
@@ -67,7 +65,14 @@ class _MainPageState extends State<MainPage> {
   }
 
   KeyEventResult _handleGlobalKeys(KeyEvent event) {
+    if (event is KeyRepeatEvent) return KeyEventResult.handled;
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    final now = DateTime.now();
+    if (_lastKeyEventTime != null && now.difference(_lastKeyEventTime!) < const Duration(milliseconds: 300)) {
+      return KeyEventResult.handled;
+    }
+    _lastKeyEventTime = now;
 
     final key = event.logicalKey;
     if (key == LogicalKeyboardKey.colorF0Red || key == LogicalKeyboardKey.f1) {
@@ -139,9 +144,10 @@ class _MainPageState extends State<MainPage> {
         SettingsPage(
           onPlaylistSelected: () {
             _goTo(0);
-            final activeId = AppState.instance.active?.id;
+            final state = AppState.instance;
+            final activeId = state.active?.id;
             if (activeId != null) {
-              MetadataSyncService.instance.startSync(activeId);
+              MetadataSyncService.instance.startSync(activeId, lang: state.lang);
             }
           },
         ),
@@ -159,7 +165,6 @@ class _MainPageState extends State<MainPage> {
           onPopInvokedWithResult: (didPop, result) async {
             if (didPop) return;
             
-            // IMMEDIATELY Force focus to SideNav item when Back is pressed
             _navNodes[_index].requestFocus();
 
             if (_selectedCategory != null) {
@@ -176,7 +181,6 @@ class _MainPageState extends State<MainPage> {
             if (shouldExit && mounted) {
               await SystemChannels.platform.invokeMethod('SystemNavigator.pop');
             } else {
-              // Re-focus just in case diyalog lost it
               _navNodes[_index].requestFocus();
             }
           },
@@ -249,8 +253,6 @@ class _MainPageState extends State<MainPage> {
         false;
   }
 }
-
-// ── TV UI Components ─────────────────────────────────────────────────────────
 
 class _TVDialogButton extends StatefulWidget {
   final String label;
@@ -332,7 +334,6 @@ class _SideNavBar extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: 48),
-          // Logo
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Row(
@@ -471,6 +472,7 @@ class _SideNavItem extends StatefulWidget {
 
 class _SideNavItemState extends State<_SideNavItem> {
   bool _isFocused = false;
+  static DateTime? _lastNavTime;
 
   @override
   Widget build(BuildContext context) {
@@ -481,22 +483,32 @@ class _SideNavItemState extends State<_SideNavItem> {
         autofocus: widget.autofocus,
         onFocusChange: (v) => setState(() => _isFocused = v),
         onKeyEvent: (node, event) {
-          if (event is KeyDownEvent) {
-            if (event.logicalKey == LogicalKeyboardKey.select || 
-                event.logicalKey == LogicalKeyboardKey.enter ||
-                event.logicalKey == LogicalKeyboardKey.gameButtonA) {
-              widget.onTap();
+          if (event is KeyRepeatEvent) return KeyEventResult.handled;
+          if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+          final now = DateTime.now();
+          if (_lastNavTime != null && now.difference(_lastNavTime!) < const Duration(milliseconds: 250)) {
+            final k = event.logicalKey;
+            if (k == LogicalKeyboardKey.arrowDown || k == LogicalKeyboardKey.arrowUp || 
+                k == LogicalKeyboardKey.select || k == LogicalKeyboardKey.enter) {
               return KeyEventResult.handled;
             }
-            if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-              // First try natural direction
-              if (FocusScope.of(context).focusInDirection(TraversalDirection.right)) {
-                return KeyEventResult.handled;
-              }
-              // If natural fail, use the bridge to content
-              widget.onRightPressed?.call();
+          }
+          _lastNavTime = now;
+
+          if (event.logicalKey == LogicalKeyboardKey.select || 
+              event.logicalKey == LogicalKeyboardKey.enter ||
+              event.logicalKey == LogicalKeyboardKey.gameButtonA) {
+            widget.onTap();
+            return KeyEventResult.handled;
+          }
+          
+          if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+            if (FocusScope.of(context).focusInDirection(TraversalDirection.right)) {
               return KeyEventResult.handled;
             }
+            widget.onRightPressed?.call();
+            return KeyEventResult.handled;
           }
           return KeyEventResult.ignored;
         },
@@ -549,4 +561,3 @@ class _SideNavItemState extends State<_SideNavItem> {
     );
   }
 }
-

@@ -2,6 +2,7 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        maven { url = uri("https://jitpack.io") }
     }
 }
 
@@ -25,9 +26,9 @@ subprojects {
         if (hasProperty("android")) {
             val android = extensions.getByName("android") as? com.android.build.gradle.BaseExtension
             android?.apply {
-                // lStar hatasını tamamen bitirmek için tüm eklentileri SDK 36'ya zorla
+                // lStar hatasını tamamen bitirmek için tüm eklentileri SDK 34'e zorla
                 compileSdkVersion(36)
-                buildToolsVersion("34.0.0")
+                buildToolsVersion("36.0.0")
 
                 // Namespace eksikliği hatasını çözmek için (Özellikle Isar gibi paketlerde)
                 if (namespace == null) {

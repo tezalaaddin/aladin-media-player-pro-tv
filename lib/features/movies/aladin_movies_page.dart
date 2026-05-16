@@ -44,7 +44,7 @@ class _MoviesPageState extends State<MoviesPage> {
 
   void _onState() {
     final a = context.read<AppState>().active;
-    if (a != null && a.id != _loadedId) _load(a.id);
+    if (a != null) _load(a.id);
   }
 
   Future<void> _load(int id) async {
@@ -136,7 +136,7 @@ class _MoviesPageState extends State<MoviesPage> {
                                 delegate: SliverChildListDelegate([
                                   if (_continueWatching.isNotEmpty)
                                     _MovieFavStrip(
-                                      title: '⏳ ${state.s.continueWatching ?? "İzlemeye Devam Et"}',
+                                      title: '⏳ ${state.s.continueWatching}',
                                       channels: _continueWatching,
                                       onTap: (ch) => _play(ch, _continueWatching),
                                     ),
