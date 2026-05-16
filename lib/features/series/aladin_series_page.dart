@@ -228,37 +228,59 @@ class _AladinSeriesDetailPageState extends State<AladinSeriesDetailPage> {
         itemCount: _filtered.length,
         itemBuilder: (_, i) {
           final ep = _filtered[i];
-          return ListTile(
-            leading: Container(
-                width: 44, // Bölüm numarası kutusu genişliği
-                height: 44, // Bölüm numarası kutusu yüksekliği
-                decoration: BoxDecoration(
-                    color: AppTheme.surface,
-                    borderRadius: BorderRadius.circular(6)),
-                child: Center(
-                    child: Text(ep.episode != null ? 'E${ep.episode}' : '?',
-                        style: const TextStyle(
-                            color: AppTheme.accent,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12)))),
-            title: Text(ep.name,
-                style:
-                    const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis),
-            subtitle: Row(children: [
-              if (ep.season != null)
-                Text('S${ep.season}', style: AppTheme.caption),
-              if (ep.quality != null)
+          final double progress = ep.totalDurationSeconds > 0 
+              ? (ep.watchedSeconds / ep.totalDurationSeconds).clamp(0.0, 1.0)
+              : 0.0;
+
+          return Column(
+            children: [
+              ListTile(
+                leading: Container(
+                    width: 44, // Bölüm numarası kutusu genişliği
+                    height: 44, // Bölüm numarası kutusu yüksekliği
+                    decoration: BoxDecoration(
+                        color: AppTheme.surface,
+                        borderRadius: BorderRadius.circular(6)),
+                    child: Center(
+                        child: Text(ep.episode != null ? 'E${ep.episode}' : '?',
+                            style: const TextStyle(
+                                color: AppTheme.accent,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12)))),
+                title: Text(ep.name,
+                    style:
+                        const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+                subtitle: Row(children: [
+                  if (ep.season != null)
+                    Text('S${ep.season}', style: AppTheme.caption),
+                  if (ep.quality != null)
+                    Padding(
+                        padding: const EdgeInsets.only(left: 8), // Sezon-Kalite arası boşluk
+                        child: Text(ep.quality!,
+                            style:
+                                AppTheme.caption.copyWith(color: AppTheme.accent))),
+                ]),
+                trailing: const Icon(Icons.play_arrow, color: AppTheme.accent), // Oynat ikon boyutu (varsayılan 24)
+                onTap: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => PlayerPage(channel: ep, playlist: _filtered))),
+              ),
+              if (progress > 0)
                 Padding(
-                    padding: const EdgeInsets.only(left: 8), // Sezon-Kalite arası boşluk
-                    child: Text(ep.quality!,
-                        style:
-                            AppTheme.caption.copyWith(color: AppTheme.accent))),
-            ]),
-            trailing: const Icon(Icons.play_arrow, color: AppTheme.accent), // Oynat ikon boyutu (varsayılan 24)
-            onTap: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => PlayerPage(channel: ep, playlist: _filtered))),
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  child: Container(
+                    height: 2,
+                    width: double.infinity,
+                    alignment: Alignment.centerLeft,
+                    color: Colors.white10,
+                    child: FractionallySizedBox(
+                      widthFactor: progress,
+                      child: Container(color: Colors.redAccent),
+                    ),
+                  ),
+                ),
+            ],
           );
         },
       )),
@@ -301,6 +323,7 @@ class _SeriesPageState extends State<SeriesPage> {
   List<CategoryModel> _categories = [];
   List<ChannelModel> _favorites = [];
   List<ChannelModel> _continueWatching = [];
+  Map<String, double> _seriesProgress = {};
   bool _loading = false;
   int? _loadedId;
 
@@ -340,12 +363,15 @@ class _SeriesPageState extends State<SeriesPage> {
 
     final cw = await ChannelService.instance.getContinueWatching(id);
     final seriesCW = cw.where((c) => c.contentType == 'series').toList();
+    
+    final progress = await ChannelService.instance.getSeriesProgressMap(id);
 
     if (!mounted) return;
     setState(() {
       _categories = cats;
       _favorites = seriesFavs;
       _continueWatching = seriesCW;
+      _seriesProgress = progress;
       _loading = false;
     });
   }
@@ -431,12 +457,14 @@ class _SeriesPageState extends State<SeriesPage> {
                                     _SeriesFavStrip(
                                       title: '⏳ ${state.s.continueWatching}',
                                       channels: _continueWatching,
+                                      progressMap: _seriesProgress,
                                       onTap: (ch) => _onSeriesTap(ch, state.active!.id),
                                     ),
                                   if (_favorites.isNotEmpty)
                                     _SeriesFavStrip(
                                       title: '⭐ ${state.s.favorites}',
                                       channels: _favorites,
+                                      progressMap: _seriesProgress,
                                       onTap: (ch) => _onSeriesTap(ch, state.active!.id),
                                     ),
                                 ]),
@@ -452,6 +480,7 @@ class _SeriesPageState extends State<SeriesPage> {
                                   key: ValueKey(_categories[i].id),
                                   category: _categories[i],
                                   playlistId: state.active!.id,
+                                  seriesProgressMap: _seriesProgress,
                                   onChannelTap: (ch, list) =>
                                       _onSeriesTap(ch, state.active!.id),
                                   onCategoryTap: widget.onCategoryTap,
@@ -470,11 +499,13 @@ class _SeriesPageState extends State<SeriesPage> {
 class _SeriesFavStrip extends StatelessWidget {
   final String title;
   final List<ChannelModel> channels;
+  final Map<String, double> progressMap;
   final void Function(ChannelModel) onTap;
 
   const _SeriesFavStrip({
     required this.title,
     required this.channels,
+    required this.progressMap,
     required this.onTap,
   });
 
@@ -487,19 +518,22 @@ class _SeriesFavStrip extends StatelessWidget {
             child: Text(title, style: AppTheme.headingMedium),
           ),
           SizedBox(
-            height: 245, // Favori şeridi yüksekliği (Kart Boyutu + Boşluk)
+            height: AppTheme.listHeight, // Standart şerit yüksekliği
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 14), // Şerit içi yan boşluklar
               itemCount: channels.length,
               separatorBuilder: (_, __) => const SizedBox(width: 12), // Kartlar arası boşluk
               clipBehavior: Clip.none,
-              itemBuilder: (_, i) => ChannelCard(
-                channel: channels[i],
-                width: 130, // Standart genişlik
-                height: 175, // Standart yükseklik
-                onTap: () => onTap(channels[i]),
-              ),
+              itemBuilder: (_, i) {
+                final ch = channels[i];
+                final prog = progressMap[ch.seriesName?.trim() ?? ch.name.trim()];
+                return ChannelCard(
+                  channel: ch,
+                  seriesProgress: prog,
+                  onTap: () => onTap(ch),
+                );
+              },
             ),
           ),
         ],

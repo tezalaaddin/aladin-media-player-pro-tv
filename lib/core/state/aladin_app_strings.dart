@@ -155,6 +155,8 @@ class AppStrings {
   String get guideVolume      => _t('guideVolume');
   String get checkingConnection => _t('checkingConnection');
   String get retryWithOk       => _t('retryWithOk');
+  String get attempt           => _t('attempt');
+  String get streamErrorDetailed => _t('streamErrorDetailed');
 
   // ── Settings ───────────────────────────────────────────────────────────────
   String get settingsTitle    => _t('settingsTitle');
@@ -331,6 +333,8 @@ class AppStrings {
     'guideVolume':    '↔ Ses Ayarla',
     'checkingConnection': 'Bağlantı/Sunucu kontrol ediliyor...',
     'retryWithOk':    'Yeniden denemek için OK tuşuna basın',
+    'attempt':        'Deneme',
+    'streamErrorDetailed': 'Bu içerik şu an açılamıyor. Lütfen internet bağlantınızı veya sunucunuzdaki yayını kontrol edin.\n\nHata Veren Adres:',
     'settingsTitle':  'Aladin Media Player Pro',
     'about':          'Hakkında',
     'developer':      'Geliştirici: Aladin',
@@ -480,6 +484,8 @@ class AppStrings {
     'guideVolume':    '↔ Adjust Volume',
     'checkingConnection': 'Checking connection/server...',
     'retryWithOk':    'Press OK to retry',
+    'attempt':        'Attempt',
+    'streamErrorDetailed': 'This stream cannot be opened at the moment. Please check your internet settings or the source link on your server.\n\nFailing URL:',
     'settingsTitle':  'Aladin Media Player Pro TV',
     'about':          'About',
     'developer':      'Developer: Aladin',
@@ -626,6 +632,8 @@ class AppStrings {
     'guideVolume':    '↔ Lautstärke anpassen',
     'checkingConnection': 'Verbindung/Server wird geprüft...',
     'retryWithOk':    'Drücken Sie OK, um es erneut zu versuchen',
+    'attempt':        'Versuch',
+    'streamErrorDetailed': 'Dieser Stream kann momentan nicht geöffnet werden. Bitte überprüfen Sie Ihre Internetverbindung oder den Quelllink auf Ihrem Server.\n\nFehlerhafte URL:',
     'settingsTitle':  'Aladin Media Player Pro TV',
     'tabM3U':         'M3U URL',
     'tabXtream':      'Xtream',
@@ -770,6 +778,8 @@ class AppStrings {
     'guideVolume':    '↔ Régler le volume',
     'checkingConnection': 'Vérification connexion/serveur...',
     'retryWithOk':    'Appuyez sur OK pour réessayer',
+    'attempt':        'Tentative',
+    'streamErrorDetailed': 'Ce flux ne peut pas être ouvert pour le moment. Veuillez vérifier vos paramètres internet ou le lien source sur votre serveur.\n\nURL en échec:',
     'settingsTitle':  'Aladin Media Player Pro TV',
     'tabM3U':         'URL M3U',
     'tabXtream':      'Xtream',
@@ -914,6 +924,8 @@ class AppStrings {
     'guideVolume':    '↔ Ajustar volumen',
     'checkingConnection': 'Comprobando conexión/servidor...',
     'retryWithOk':    'Presione OK para reintentar',
+    'attempt':        'Intento',
+    'streamErrorDetailed': 'Este stream no se puede abrir en este momento. Por favor, compruebe su configuración de internet o el enlace de origen en su servidor.\n\nURL con error:',
     'settingsTitle':  'Aladin Media Player Pro TV',
     'tabM3U':         'URL M3U',
     'tabXtream':      'Xtream',
@@ -1058,6 +1070,8 @@ class AppStrings {
     'guideVolume':    '↔ Громкость',
     'checkingConnection': 'Проверка соединения/сервера...',
     'retryWithOk':    'Нажмите OK, чтобы повторить попытку',
+    'attempt':        'Попытка',
+    'streamErrorDetailed': 'Этот поток не может быть открыт в данный момент. Пожалуйста, проверьте настройки интернета или исходную ссылку на вашем сервере.\n\nОшибка URL:',
     'settingsTitle':  'Aladin Media Player Pro TV',
     'tabM3U':         'M3U URL',
     'tabXtream':      'Xtream',
@@ -1202,6 +1216,8 @@ class AppStrings {
     'guideVolume':    '↔ 调节音量',
     'checkingConnection': '正在检查连接/服务器...',
     'retryWithOk':    '按确定键重试',
+    'attempt':        '尝试',
+    'streamErrorDetailed': '目前无法打开此流。请检查您的网络设置或服务器上的源链接。\n\n错误的 URL:',
     'settingsTitle':  'Aladin Media Player Pro TV',
     'tabM3U':         'M3U URL',
     'tabXtream':      'Xtream',
@@ -1346,6 +1362,8 @@ class AppStrings {
     'guideVolume':    '↔ ضبط الصوت',
     'checkingConnection': 'جاري التحقق من الاتصال/السيرفر...',
     'retryWithOk':    'اضغط على موافق لإعادة المحاولة',
+    'attempt':        'محاولة',
+    'streamErrorDetailed': 'لا يمكن فتح هذا البث في الوقت الحالي. يرجى التحقق من إعدادات الإنترنت أو رابط المصدر على الخادم الخاص بك.\n\nالرابط المتعطل:',
     'settingsTitle':  'Aladin Media Player Pro TV',
     'tabM3U':         'M3U URL',
     'tabXtream':      'Xtream',

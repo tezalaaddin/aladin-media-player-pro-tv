@@ -17,6 +17,13 @@ class AppTheme {
   static const Color overlay = Color(0x99000000);
   static const Color favorite = Color(0xFFFFD700);
 
+  // ── Layout Standards ───────────────────────────────────────────────────────
+  static const double cardWidth = 140.0;
+  static const double cardHeight = 200.0;
+  static const double listSectionHeight = 270.0; // Şeritlerin toplam yüksekliği (Başlık + Liste)
+  static const double listHeight = 215.0;        // Sadece yatay listenin (SizedBox) yüksekliği
+  static const double gridHeight = 255.0;        // Izgara (Grid) içindeki her bir öğenin toplam yüksekliği (Kart + Yazı)
+
   // ── Text styles ─────────────────────────────────────────────────────────────
   static const TextStyle headingLarge = TextStyle(
     fontSize: 24,

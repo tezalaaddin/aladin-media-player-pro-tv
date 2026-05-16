@@ -123,19 +123,20 @@ class _SearchPageState extends State<SearchPage> {
                     : GridView.builder(
                         padding: EdgeInsets.symmetric(horizontal: safePadding, vertical: 10),
                         gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 145,
+                          maxCrossAxisExtent: AppTheme.cardWidth + 20,
                           mainAxisSpacing: 25,
-                          crossAxisSpacing: 10,
-                          mainAxisExtent: 225,
+                          crossAxisSpacing: 15,
+                          mainAxisExtent: AppTheme.gridHeight,
                         ),
                         itemCount: _results.length,
                         itemBuilder: (_, i) {
                           final ch = _results[i];
-                          return ChannelCard(
-                            channel: ch,
-                            width: 130,
-                            height: 175,
-                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerPage(channel: ch, playlist: [ch]))),
+                          return Center(
+                            child: ChannelCard(
+                              channel: ch,
+                              margin: EdgeInsets.zero,
+                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerPage(channel: ch, playlist: [ch]))),
+                            ),
                           );
                         },
                       ),

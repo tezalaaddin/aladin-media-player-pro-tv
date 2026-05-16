@@ -259,4 +259,19 @@
             android:lineSpacingExtra="4dp" />
     </LinearLayout>
 
+    <!-- Center Play/Pause Button -->
+    <ImageView
+        android:id="@+id/iv_center_play_pause"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:layout_gravity="center"
+        android:background="@drawable/circle_bg"
+        android:padding="16dp"
+        android:src="@android:drawable/ic_media_play"
+        android:tint="#FFFFFF"
+        android:alpha="0.8"
+        android:visibility="gone"
+        android:clickable="true"
+        android:focusable="true" />
+
 </FrameLayout>

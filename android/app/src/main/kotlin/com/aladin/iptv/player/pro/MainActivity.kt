@@ -4,6 +4,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Bundle
+import androidx.core.view.WindowCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -12,6 +14,11 @@ import java.util.ArrayList
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "aladin/exoplayer"
     private var methodChannel: MethodChannel? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        super.onCreate(savedInstanceState)
+    }
 
     private val playerReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {

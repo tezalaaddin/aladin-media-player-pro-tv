@@ -103,9 +103,12 @@ class _PlayerPageState extends State<PlayerPage> {
           'aspect_fit': s.aspectFit,
           'aspect_fill': s.aspectFill,
           'aspect_zoom': s.aspectZoom,
-          'loading': s.checkingConnection,
+          'loading': s.loading,
+          'checking_connection': s.checkingConnection,
           'error': s.streamError,
           'retry_ok': s.retryWithOk,
+          'attempt': s.attempt,
+          'error_detailed': s.streamErrorDetailed,
         }
       });
       

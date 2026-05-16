@@ -193,7 +193,7 @@ class _MovieFavStrip extends StatelessWidget {
             child: Text(title, style: AppTheme.headingMedium),
           ),
           SizedBox(
-            height: 245, // Şerit yüksekliği (Kart yüksekliği + Boşluk)
+            height: AppTheme.listHeight, // Standart şerit yüksekliği
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 14), // Şerit içi yan boşluklar
@@ -202,8 +202,6 @@ class _MovieFavStrip extends StatelessWidget {
               clipBehavior: Clip.none,
               itemBuilder: (_, i) => ChannelCard(
                 channel: channels[i],
-                width: 130, // Standart genişlik
-                height: 175, // Standart yükseklik
                 onTap: () => onTap(channels[i]),
               ),
             ),

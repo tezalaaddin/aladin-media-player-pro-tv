@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../../core/models/aladin_playlist_model.dart';
 import '../../../core/services/aladin_playlist_service.dart';
 import '../../core/services/aladin_epg_engine.dart';
@@ -31,6 +32,7 @@ class _SettingsPageState extends State<SettingsPage>
   final _xtName = TextEditingController();
   final _locName = TextEditingController();
   String? _localPath;
+  PackageInfo? _packageInfo;
 
   // Focus Nodes
   final _fnM3uUrl = FocusNode();
@@ -55,6 +57,12 @@ class _SettingsPageState extends State<SettingsPage>
   void initState() {
     super.initState();
     _tabs = TabController(length: 3, vsync: this);
+    _initPackageInfo();
+  }
+
+  Future<void> _initPackageInfo() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) setState(() => _packageInfo = info);
   }
 
   @override
@@ -612,7 +620,10 @@ class _SettingsPageState extends State<SettingsPage>
           children: [
             const Text('Aladin Media Player Pro', style: TextStyle(color: AppTheme.accent, fontWeight: FontWeight.bold, fontSize: 18)),
             const SizedBox(height: 8),
-            const Text('Version 2.2.0', style: TextStyle(color: Colors.white70, fontSize: 14)),
+            Text(
+              'Version ${_packageInfo?.version ?? '...'} (Build ${_packageInfo?.buildNumber ?? '...'})',
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
+            ),
             const SizedBox(height: 16),
             Text(s.developer, style: const TextStyle(color: Colors.white, fontSize: 14)),
             const SizedBox(height: 8),

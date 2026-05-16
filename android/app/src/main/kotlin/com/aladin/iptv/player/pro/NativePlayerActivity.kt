@@ -38,6 +38,9 @@ import android.graphics.BitmapFactory
 import java.net.URL
 import java.util.concurrent.Executors
 
+import android.app.PictureInPictureParams
+import android.os.Build
+import android.util.Rational
 import android.view.GestureDetector
 import android.view.MotionEvent
 import kotlin.math.abs
@@ -51,6 +54,26 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
             } catch (t: Throwable) {
                 android.util.Log.e("ALADIN_FFMPEG", "FFmpeg not found in jniLibs, using extension only")
             }
+        }
+    }
+
+    override fun onUserLeaveHint() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val params = PictureInPictureParams.Builder()
+                .setAspectRatio(Rational(16, 9))
+                .build()
+            enterPictureInPictureMode(params)
+        }
+    }
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: android.content.res.Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        if (isInPictureInPictureMode) {
+            channelInfoLayout.visibility = View.GONE
+            keyGuideLayout.visibility = View.GONE
+            volumeLayout.visibility = View.GONE
+            seekBar.visibility = View.GONE
+            pauseInfoLayout.visibility = View.GONE
         }
     }
 
@@ -78,6 +101,7 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
     private lateinit var btnFavorite: TextView
     private lateinit var tvGuideNav: TextView
     private lateinit var tvGuideSeek: TextView
+    private lateinit var ivCenterPlayPause: ImageView
 
     // Pause Info Layout
     private lateinit var pauseInfoLayout: LinearLayout
@@ -107,7 +131,10 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
     
     private val bufferingStatusRunnable = Runnable {
         if (player?.playbackState == Player.STATE_BUFFERING && player?.playWhenReady == true) {
-            showStatus(t("loading", "Bağlantı kontrol ediliyor..."), true)
+            val baseMsg = t("checking_connection", "Bağlantı kontrol ediliyor...")
+            val attemptMsg = t("attempt", "Deneme")
+            val finalMsg = if (bufferingRetryCount > 0) "$baseMsg $attemptMsg $bufferingRetryCount" else baseMsg
+            showStatus(finalMsg, true)
         }
     }
 
@@ -118,7 +145,9 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
             prepareAndPlay()
         } else {
             isPersistentError = true
-            showStatus("${t("error", "Hata")}\n${t("retry_ok", "Yeniden denemek için OK basın")}", true)
+            val errorDetailed = t("error_detailed", "Bu içerik şu an açılamıyor. Lütfen internet bağlantınızı veya sunucunuzdaki yayını kontrol edin.\n\nHata Veren Adres:")
+            val currentUrl = channelUrls?.getOrNull(currentIndex) ?: ""
+            showStatus("$errorDetailed\n\n$currentUrl\n\n${t("retry_ok", "Yeniden denemek için OK basın")}", true)
             // Keep OSD visible
             mainHandler.removeCallbacks(hideRunnable)
             channelInfoLayout.visibility = View.VISIBLE
@@ -149,6 +178,7 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
         volumeLayout.visibility = View.GONE
         keyGuideLayout.visibility = View.GONE
         seekBar.visibility = View.GONE
+        ivCenterPlayPause.visibility = View.GONE
     }
 
     private val updateProgressAction = object : Runnable {
@@ -229,6 +259,8 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
         btnFavorite = findViewById(R.id.btn_favorite)
         tvGuideNav = findViewById(R.id.tv_guide_nav)
         tvGuideSeek = findViewById(R.id.tv_guide_seek)
+        ivCenterPlayPause = findViewById(R.id.iv_center_play_pause)
+        ivCenterPlayPause.setOnClickListener { togglePlayPause() }
 
         setupLabels()
         prepareAndPlay()
@@ -284,17 +316,12 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
     // --- Gesture Implementation ---
 
     override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
-        if (channelInfoLayout.visibility == View.VISIBLE) {
-            hideRunnable.run()
-        } else {
-            showOSD()
-        }
+        showOSD()
         return true
     }
 
     override fun onDoubleTap(e: MotionEvent): Boolean {
-        togglePlayPause()
-        return true
+        return false
     }
 
     override fun onDoubleTapEvent(e: MotionEvent): Boolean = false
@@ -372,8 +399,13 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
 
     private fun togglePlayPause() {
         player?.let { p ->
-            if (p.isPlaying) { p.pause(); showOSD() }
-            else { p.play(); showOSD() }
+            if (p.isPlaying) { 
+                p.pause()
+                showOSD() 
+            } else { 
+                p.play()
+                showOSD() 
+            }
         }
     }
 
@@ -397,14 +429,20 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
     private fun initializePlayer() {
         if (player != null) return // Already initialized
 
-        // 1. Renderers Factory: Extension (FFmpeg) desteğini aktif et
+        // 1. Renderers Factory: Donanım öncelikli, destek yoksa FFmpeg fallback
         val renderersFactory = DefaultRenderersFactory(this)
-            .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+            .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
             .setEnableDecoderFallback(true)
+            .setEnableAudioFloatOutput(true)
 
         // 2. LoadControl (Buffer Ayarları)
         val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(30000, 60000, 2500, 5000)
+            .setBufferDurationsMs(
+                15000, // minBufferMs (Daha hızlı başlangıç için düşürüldü)
+                50000, // maxBufferMs
+                1000,  // bufferForPlaybackMs (1s yeterli)
+                2500   // bufferForPlaybackAfterRebufferMs
+            )
             .setPrioritizeTimeOverSizeThresholds(true)
             .build()
 
@@ -463,13 +501,13 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
             override fun onPlaybackStateChanged(state: Int) {
                 when (state) {
                     Player.STATE_BUFFERING -> {
-                        // Start 5s delay for showing "Connecting..." status
+                        // Start 15s delay for showing "Connecting..." status
                         mainHandler.removeCallbacks(bufferingStatusRunnable)
-                        mainHandler.postDelayed(bufferingStatusRunnable, 5000)
+                        mainHandler.postDelayed(bufferingStatusRunnable, 15000)
                         
-                        // Start 15s timeout for auto-retry
+                        // Start 30s timeout for auto-retry
                         mainHandler.removeCallbacks(bufferingTimeoutRunnable)
-                        mainHandler.postDelayed(bufferingTimeoutRunnable, 15000)
+                        mainHandler.postDelayed(bufferingTimeoutRunnable, 30000)
                     }
                     Player.STATE_READY -> {
                         retryCount = 0
@@ -485,6 +523,9 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
                                 seekBar.max = min(p.duration, Int.MAX_VALUE.toLong()).toInt()
                             }
                         }
+                        
+                        // Video ilk hazır olduğunda OSD'yi göster ve akıllı zamanlayıcıyı başlat
+                        showOSD()
                     }
                     Player.STATE_ENDED -> {
                         mainHandler.removeCallbacks(bufferingTimeoutRunnable)
@@ -762,17 +803,34 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
     private fun showOSD() {
         channelInfoLayout.visibility = View.VISIBLE
         keyGuideLayout.visibility = View.VISIBLE
+        
         player?.let { p ->
-            if (p.duration != C.TIME_UNSET && p.duration > 0) seekBar.visibility = View.VISIBLE
-            else seekBar.visibility = View.GONE
+            if (p.duration != C.TIME_UNSET && p.duration > 0) {
+                seekBar.visibility = View.VISIBLE
+            } else {
+                seekBar.visibility = View.GONE
+            }
             tvTimeInfo.visibility = View.VISIBLE
+
+            // Play/Pause simgesini güncelle
+            if (p.isPlaying) {
+                ivCenterPlayPause.setImageResource(android.R.drawable.ic_media_pause)
+            } else {
+                ivCenterPlayPause.setImageResource(android.R.drawable.ic_media_play)
+            }
+            ivCenterPlayPause.visibility = View.VISIBLE
         }
         resetHideTimer()
     }
 
     private fun resetHideTimer() {
         mainHandler.removeCallbacks(hideRunnable)
-        mainHandler.postDelayed(hideRunnable, 5000)
+        player?.let { p ->
+            // Eğer video duraklatılmışsa (pause), OSD açık kalsın
+            if (p.isPlaying) {
+                mainHandler.postDelayed(hideRunnable, 2500) // Play iken 2.5 saniye sonra kapat
+            }
+        }
     }
 
     private fun showStatus(msg: String, persistent: Boolean = false) {

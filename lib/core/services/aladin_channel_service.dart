@@ -130,19 +130,47 @@ class ChannelService {
       for (final ch in matches) {
         final percent = (seconds / totalSeconds) * 100;
         
-        // %3 ile %90 arasında ise kaydet
-        if (percent >= 3 && percent <= 90) {
+        // %3 ile %95 arasında ise normal kaydet
+        if (percent >= 3 && percent <= 95) {
           ch.lastWatched = DateTime.now();
           ch.watchedSeconds = seconds;
           ch.totalDurationSeconds = totalSeconds;
-        } else if (percent > 90) {
-          // %90'ı geçmişse izlenmiş say ve listeden çıkar (pos=0 yap)
-          ch.watchedSeconds = 0;
-          ch.lastWatched = null; 
+        } else if (percent > 95) {
+          // %95'i geçmişse tamamen izlenmiş say ve çubuğu dolu tut
+          ch.lastWatched = DateTime.now();
+          ch.watchedSeconds = totalSeconds;
+          ch.totalDurationSeconds = totalSeconds;
         }
 
         await _db.channelModels.put(ch);
       }
+    });
+  }
+
+  /// Dizi ana sayfası için her dizinin izleme oranını hesaplar
+  Future<Map<String, double>> getSeriesProgressMap(int playlistId) async {
+    final allSeries = await _db.channelModels
+        .filter()
+        .playlistIdEqualTo(playlistId)
+        .and()
+        .contentTypeEqualTo('series')
+        .findAll();
+    
+    final stats = <String, List<bool>>{}; // seriesName -> [isWatched, isWatched, ...]
+    for (final ch in allSeries) {
+      if (ch.url.isEmpty) continue; // Bölüm olmayan ana kayıtları geç
+      final key = ch.seriesName?.trim() ?? ch.name.trim();
+      
+      // YENİ MANTIK: Bir bölüm 5 dakika (300 saniye) veya daha fazla izlendiyse "izlendi" say.
+      final isWatched = ch.watchedSeconds >= 300;
+
+      stats.putIfAbsent(key, () => []).add(isWatched);
+    }
+    
+    return stats.map((key, list) {
+      if (list.isEmpty) return MapEntry(key, 0.0);
+      final watched = list.where((w) => w).length;
+      return MapEntry(key, watched / list.length);
     });
   }
 

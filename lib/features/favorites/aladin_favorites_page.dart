@@ -117,19 +117,20 @@ class _FavoritesPageState extends State<FavoritesPage> with SingleTickerProvider
     return GridView.builder(
       padding: EdgeInsets.symmetric(horizontal: safePadding, vertical: 20),
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 145,
+        maxCrossAxisExtent: AppTheme.cardWidth + 20,
         mainAxisSpacing: 25,
-        crossAxisSpacing: 10,
-        mainAxisExtent: 225,
+        crossAxisSpacing: 15,
+        mainAxisExtent: AppTheme.gridHeight,
       ),
       itemCount: list.length,
       itemBuilder: (context, index) {
         final ch = list[index];
-        return ChannelCard(
-          channel: ch,
-          width: 130,
-          height: 175,
-          onTap: () => _play(ch, list),
+        return Center(
+          child: ChannelCard(
+            channel: ch,
+            margin: EdgeInsets.zero,
+            onTap: () => _play(ch, list),
+          ),
         );
       },
     );

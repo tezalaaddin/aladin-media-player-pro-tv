@@ -1,7 +1,7 @@
 name: aladin_iptv_pro
 description: Aladin Media Player Pro TV — High-Performance Android TV Media Player
 publish_to: 'none'
-version: 2.2.0+8
+version: 2.2.0+14
 
 environment:
   sdk: '>=3.2.0 <4.0.0'
@@ -46,6 +46,7 @@ dependencies:
   # ── Utils ─────────────────────────────────────────────────────────────────
   intl: ^0.19.0
   url_launcher: ^6.3.0
+  package_info_plus: ^8.1.1
 
   collection: ^1.18.0
 

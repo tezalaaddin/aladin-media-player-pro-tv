@@ -178,20 +178,21 @@ class _AladinCategoryPageState extends State<AladinCategoryPage> {
               padding: EdgeInsets.symmetric(horizontal: safePadding, vertical: 10), // Izgara dış boşluğu
               sliver: SliverGrid(
                 gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 145, // Her bir sütunun maksimum genişliği (130 kart + 15 boşluk)
-                  mainAxisSpacing: 20, // Dikey satırlar arası boşluk
-                  crossAxisSpacing: 10, // Yatay sütunlar arası boşluk
-                  mainAxisExtent: 220, // Her bir öğenin toplam yüksekliği (175 kart + 45 metin alanı)
+                  maxCrossAxisExtent: AppTheme.cardWidth + 20, // Her bir sütunun maksimum genişliği
+                  mainAxisSpacing: 25, // Dikey satırlar arası boşluk
+                  crossAxisSpacing: 15, // Yatay sütunlar arası boşluk
+                  mainAxisExtent: AppTheme.gridHeight, // Her bir öğenin toplam yüksekliği
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     final ch = _channels[index];
-                    return ChannelCard(
-                      key: ValueKey('grid_${ch.id}'),
-                      channel: ch,
-                      width: 130, // Standart genişlik
-                      height: 175, // Standart yükseklik
-                      onTap: () => widget.onChannelTap(ch, _channels),
+                    return Center(
+                      child: ChannelCard(
+                        key: ValueKey('grid_${ch.id}'),
+                        channel: ch,
+                        margin: EdgeInsets.zero,
+                        onTap: () => widget.onChannelTap(ch, _channels),
+                      ),
                     );
                   },
                   childCount: _channels.length,

@@ -1,7 +1,7 @@
 ---
 name: aladin Media Player Pro TV
 description: Next-gen IPTV solution with high-performance EPG management and Netflix-style UI.
-version: 2.2.0+6
+version: 2.2.0+14
 author: tezalaaddin
 tags: [iptv, flutter, media-kit, streaming, isar]
 ---
@@ -1292,8 +1292,47 @@ Bu güncelleme ile Home tuşuna bastığınızda ses anında kesilecektir.
    Bu değişiklikler hem uygulamanın düşük donanımlı Android TV'lerde daha stabil çalışmasını sağlayacak hem de "Overdraw" yükünü azaltarak video oynatma performansına olumlu yansıyacaktır.
 
 ##  Versiyon 2.2.0 (Build 10) Güncelleme Notları: Ses Problemi Çözüldü
-
 Gelişmiş Ses Desteği: EAC3, AC3 ve DTS ses formatları için yazılımsal çözücü (FFmpeg) entegre edildi. Artık tüm kanallarda ve filmlerde ses sorunsuz oynatılıyor.
+
+##  Versiyon 2.2.0 (Build 11) Güncelleme Notları: Android 15 Uyumluluğu ve Yeni Özellikler
+•Pencere İçinde Pencere (PiP): Artık video izlerken uygulamadan çıksanız bile video küçük bir pencerede oynamaya devam eder (Android 8.0+ destekli cihazlarda).
+•Dinamik Sürüm Bilgisi: Ayarlar > Hakkında bölümünde artık sadece sürüm değil, teknik destek için kritik olan "Build Numarası" da (Örn: 2.2.0+9) otomatik olarak görünür.
+•Android 15 Hazırlığı: Google Play'in en güncel standartlarına uyum sağlandı; Uçtan uca ekran (Edge-to-Edge) ve yeni nesil 16 KB sayfa boyutu desteği eklendi.
+•Gelişmiş Ses (FFmpeg): EAC3, AC3 ve DTS formatları için kütüphane entegrasyonu tamamlandı, "Ses Yok" sorunları giderildi.
+•Tablet ve Katlanabilir Cihaz Desteği: Büyük ekranlı cihazlarda uygulamanın daha stabil çalışması için yeniden boyutlandırma iyileştirmeleri yapıldı.
+
+
+##  Versiyon 2.2.0 (Build 12) Güncelleme Notları: İzleme Deneyimi ve İlerleme Takibi
+•Akıllı İlerleme Çubuğu: Artık film ve dizi bölümlerinin ne kadarını izlediğinizi kartların altındaki ilerleme çubuklarından görebilirsiniz.
+•Dizi İzleme Oranı: Dizi ana sayfasında, her dizinin toplam kaç bölümünün izlendiği yüzdesel olarak çubuk üzerinde gösterilmeye başlandı.
+•Dokunmatik Kontrol: Video oynatırken tek bir dokunuşla videoyu durdurma/oynatma özelliği eklendi.
+•Bağlantı Uyarıları: Yayın yükleme ekranındaki durum mesajları daha akıllı hale getirildi (5 sn gecikmeli kontrol).
+•Görsel İyileştirmeler: İlerleme çubuklarına parlama (glow) efekti eklenerek daha modern bir görünüm sağlandı.
+
+##  Versiyon 2.2.0 (Build 13) Güncelleme Notları: Arayüz Standartlaştırması
+1.Merkezi Yönetim (AppTheme): lib/shared/theme/aladin_app_theme.dart dosyasına kart boyutları için standart sabitler ekledim. Artık tüm uygulamanın görünümünü sadece buradaki rakamları değiştirerek güncelleyebilirsiniz:
+◦AppTheme.cardWidth (130.0)
+◦AppTheme.cardHeight (175.0)
+◦AppTheme.cardRowHeight (185.0)
+2.ChannelCard Güncellemesi: ChannelCard bileşeninin varsayılan boyutlarını bu merkezi sabitlere bağladım. Artık hiçbir sayfada manuel boyut girmenize gerek kalmadı.
+3.Sayfa Temizlikleri: Aşağıdaki tüm sayfalardaki manuel boyut girişlerini (130, 175, 245 vb.) temizledim ve standart sisteme geçirdim:
+◦MoviesPage (Filmler ve Kaldığın Yerden şeritleri)
+◦SeriesPage (Diziler ve Favoriler şeritleri)
+◦LiveTvPage (TV ve Favoriler şeritleri)
+◦AladinCategoryPage (Kategori Grid görünümü)
+◦SearchPage (Arama sonuçları)
+◦FavoritesPage (Favoriler Grid görünümü)
+
+##  Versiyon 2.2.0 (Build 14) Güncelleme Notları:
+Oynatmada "görüntü takılması" ve "hızlı oynatma" sorunları Hibrit Decoder ile çözüldü.
+Yeni Play/Pause: Ekran ortasına interaktif oynat/duraklat simgesi eklendi.
+Video başlangıcında kanal bilgileri 2.5 saniye gösterilip otomatik gizleniyor.
+Pause modunda tüm kontrol paneli ve kanal bilgileri ekranda sabit kalıyor.
+Tek dokunuş/tıklama doğrudan durdurmak yerine kontrol panelini tetikliyor (Kumanda uyumluluğu).
+
+
+
+
 
 
 

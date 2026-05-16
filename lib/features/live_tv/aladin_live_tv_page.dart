@@ -233,7 +233,7 @@ class _HorizStrip extends StatelessWidget {
             child: Text(title, style: AppTheme.headingMedium),
           ),
           SizedBox(
-            height: 190, // yatay listenin toplam kapladiği alan yuksekligi
+            height: AppTheme.listHeight, // Standart şerit yüksekliği
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -242,8 +242,6 @@ class _HorizStrip extends StatelessWidget {
               clipBehavior: Clip.none,
               itemBuilder: (_, i) => ChannelCard(
                 channel: channels[i],
-                width: 130, 
-                height: 175,
                 tvMode: true,
                 onTap: () => onTap(channels[i]),
               ),

@@ -14,6 +14,7 @@ class CategoryRow extends StatefulWidget {
   final void Function(ChannelModel)? onFavorite;
   final bool tvMode;
   final bool showEpg;
+  final Map<String, double>? seriesProgressMap;
 
   const CategoryRow({
     super.key,
@@ -24,6 +25,7 @@ class CategoryRow extends StatefulWidget {
     this.onFavorite,
     this.tvMode = false,
     this.showEpg = false,
+    this.seriesProgressMap,
   });
 
   @override
@@ -38,10 +40,10 @@ class _CategoryRowState extends State<CategoryRow> {
   bool _fetching = false;
   static const _pageSize = 100;
 
-  // %100 Tek Boyut Standartları
-  static const double _cardWidth = 130; // Tüm kartların sabit genişliği
-  static const double _cardHeight = 175; // Tüm kartların sabit yüksekliği
-  static const double _rowHeight = 185; // Yatay şeridin toplam yüksekliği (Kart + Başlık + Boşluk)
+  // Layout Standards from AppTheme
+  static const double _cardWidth = AppTheme.cardWidth;
+  static const double _cardHeight = AppTheme.cardHeight;
+  static const double _rowHeight = AppTheme.listHeight;
 
   @override
   void initState() {
@@ -130,12 +132,14 @@ class _CategoryRowState extends State<CategoryRow> {
                         return const Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accent)));
                       }
                       final ch = _channels[i];
+                      final prog = widget.seriesProgressMap?[ch.seriesName?.trim() ?? ch.name.trim()];
                       return ChannelCard(
                         key: ValueKey(ch.id),
                         channel: ch,
                         width: _cardWidth, // 130
                         height: _cardHeight, // 175
                         showEpg: widget.showEpg,
+                        seriesProgress: prog,
                         onTap: () => widget.onChannelTap(ch, _channels),
                         onFavoriteTap: () => widget.onFavorite?.call(ch),
                       );

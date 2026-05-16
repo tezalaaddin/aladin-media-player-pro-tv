@@ -15,16 +15,20 @@ class ChannelCard extends StatefulWidget {
   final double height;
   final bool showEpg;
   final bool tvMode;
+  final double? seriesProgress;
+  final EdgeInsets? margin;
 
   const ChannelCard({
     super.key,
     required this.channel,
     required this.onTap,
     this.onFavoriteTap,
-    this.width = 130, // Varsayılan kart genişliği
-    this.height = 175, // Varsayılan kart yüksekliği
+    this.width = AppTheme.cardWidth,
+    this.height = AppTheme.cardHeight,
     this.showEpg = false,
     this.tvMode = false,
+    this.seriesProgress,
+    this.margin,
   });
 
   @override
@@ -76,12 +80,23 @@ class _ChannelCardState extends State<ChannelCard> {
     final year = widget.channel.tmdbYear;
     final cleanName = _cleanName;
     
-    final double progress = widget.channel.totalDurationSeconds > 0 
+    final double progress = widget.seriesProgress ?? (widget.channel.totalDurationSeconds > 0 
         ? (widget.channel.watchedSeconds / widget.channel.totalDurationSeconds).clamp(0.01, 1.0)
-        : 0.0;
+        : 0.0);
 
     return Focus(
-      onFocusChange: (v) => setState(() => _focused = v),
+      onFocusChange: (v) {
+        setState(() => _focused = v);
+        if (v) {
+          // Kart odaklandığında ekranın ortasına veya görünür alana gelmesini sağlar
+          Scrollable.ensureVisible(
+            context,
+            alignment: 0.5, // 0.5 değeri kartı ekranın dikey/yatay ortasına getirir
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        }
+      },
       onKeyEvent: (node, event) {
         if (event is KeyDownEvent &&
             (event.logicalKey == LogicalKeyboardKey.select ||
@@ -96,9 +111,9 @@ class _ChannelCardState extends State<ChannelCard> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200), // Odaklanma animasyon süresi
           curve: Curves.easeInOut,
-          width: widget.width, // 130
-          height: widget.height, // 175
-          margin: const EdgeInsets.only(right: 12), // Kartlar arası sağ boşluk
+          width: widget.width, // AppTheme.cardWidth
+          height: widget.height, // AppTheme.cardHeight
+          margin: widget.margin ?? const EdgeInsets.only(right: 12), // Kartlar arası boşluk
           transformAlignment: Alignment.center,
           transform: Matrix4.identity()..scaleByDouble(isSelected ? 1.08 : 1.0, isSelected ? 1.08 : 1.0, 1.0, 1.0), // Odaklanınca %8 büyüme
           decoration: BoxDecoration(
@@ -177,17 +192,24 @@ class _ChannelCardState extends State<ChannelCard> {
                   ),
                 ),
 
-                // İzleme İlerleme Çubuğu (VOD)
-                if (progress > 0)
+                // İzleme İlerleme Çubuğu (VOD / Dizi)
+                if (progress > 0 && widget.channel.contentType != 'tv')
                   Positioned(
                     left: 0, right: 0, bottom: 0,
                     child: Container(
-                      height: 3,
+                      height: 4,
                       alignment: Alignment.centerLeft,
-                      color: Colors.white12,
+                      color: Colors.white10,
                       child: FractionallySizedBox(
                         widthFactor: progress,
-                        child: Container(color: Colors.redAccent),
+                        child: Container(
+                          decoration: const BoxDecoration(
+                            color: Colors.redAccent,
+                            boxShadow: [
+                              BoxShadow(color: Colors.redAccent, blurRadius: 4)
+                            ]
+                          ),
+                        ),
                       ),
                     ),
                   ),
