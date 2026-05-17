@@ -1330,6 +1330,23 @@ Video başlangıcında kanal bilgileri 2.5 saniye gösterilip otomatik gizleniyo
 Pause modunda tüm kontrol paneli ve kanal bilgileri ekranda sabit kalıyor.
 Tek dokunuş/tıklama doğrudan durdurmak yerine kontrol panelini tetikliyor (Kumanda uyumluluğu).
 
+## V2.2.0+14 Sürüm Notları:
+
+**1. Eski Cihazlar ve TV Box Uyumluluğu (Android 9 Fix):**
+*   **Donanım/Yazılım Hibrit Decoder:** Artık video oynatırken önce cihazın kendi donanım işlemcisi (Hardware) deneniyor. Eğer donanım videoyu çözemezse, uygulama otomatik olarak FFmpeg (Software) motoruna geçiyor. Bu sayede "görüntü takılıp sesin gelmesi" sorunu çözüldü.
+*   **Buffer (Tampon) Optimizasyonu:** Düşük RAM'li TV Box cihazlarında hafıza şişmesini önlemek için tampon bellek yönetimi daha agresif ve dinamik hale getirildi.
+*   **Ses Senkronizasyon İyileştirmesi:** Yazılımsal ses çözmedeki cızırtıları ve "hızlı oynatma" (sync loss) hatalarını önlemek için Float Audio Output teknolojisi aktif edildi.
+
+**2. Modern Oynatıcı Arayüzü (UX/UI Güncellemesi):**
+*   **Yeni Play/Pause Sistemi:** Ekranın ortasına interaktif bir Oynat/Duraklat simgesi eklendi.
+*   **Akıllı OSD (Ekran Bilgileri):** 
+    *   Video ilk açıldığında kanal bilgileri otomatik gösterilir ve 2.5 saniye sonra kendiliğinden kaybolur.
+    *   Video duraklatıldığında (Pause), tüm bilgiler (Kanal adı, süre, ayarlar) kullanıcı tekrar oynatana kadar ekranda sabit kalır.
+    *   Tek dokunuş artık videoyu hemen durdurmak yerine, kontrol panelini ekrana getirir (Kumanda konforu).
+
+**3. Kararlılık:**
+*   Bağlantı hatalarında ve video formatı uyuşmazlıklarında uygulamanın çökmesi engellenerek "Fallback" (Geri çekilme) mekanizması güçlendirildi.
+
 
 
 
