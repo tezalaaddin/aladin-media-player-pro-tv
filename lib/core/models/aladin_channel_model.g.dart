@@ -224,7 +224,7 @@ const ChannelModelSchema = CollectionSchema(
   getId: _channelModelGetId,
   getLinks: _channelModelGetLinks,
   attach: _channelModelAttach,
-  version: '3.1.0+1',
+  version: '3.3.2',
 );
 
 int _channelModelEstimateSize(

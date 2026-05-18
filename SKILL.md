@@ -1483,30 +1483,16 @@ Claude Raporu ve Play Console önerileri doğrultusunda yapılan kritik performa
    ◦Bayrak Desteği: Bayrak emojileri butonlarda daha büyük ve estetik bir şekilde konumlandırıldı.
    İlgili dosyalar (lib/core/state/aladin_app_strings.dart ve lib/main.dart) güncellenmiştir.
 
+## V2.2.0+20 Sürüm Notları:
+1. Google Play Uyumluluğu (SDK 35):
+   •   Google Play Console gereksinimi olan Target API 35 (Android 15) seviyesine geçiş yapıldı.
+2. 16 KB Bellek Sayfası Desteği:
+   •   Gelecek nesil Android cihazlarda uygulamanın çalışmasını engelleyen Isar kütüphanesinin 16 KB hizalama sorunu, `isar_community` kütüphanesine geçilerek ve NDK r28 ile derlenerek tamamen çözüldü.
+3. Altyapı ve Performans:
+   •   Android Gradle Plugin (AGP) 8.11.1 sürümüne yükseltildi.
+   •   "Kaldığın Yerden" listesi için dizi bölümleri tekilleştirildi (bir diziden sadece son izlenen bölüm görünür).
+   •   %3 - %90 izleme kuralı veritabanı seviyesinde optimize edildi.
+4. Gelişmiş Oynatıcı Özellikleri:
+   •   Yükleme halkası, Hızlı Liste (6 tuşu), 10 dakikalık atlama (7-9 tuşları) ve teknik detay paneli (5 tuşu) eklendi.
+
 ## V2.2.0+19 Sürüm Notları:
-1. Oynatma Performansı ve Hibrit Decoder (Stabilizasyon):
-   •   Akış Sorunları Giderildi: Bazı cihazlarda görülen "görüntü takılması" ve "hızlı oynatma" (senkronizasyon kayması) sorunları Hibrit Decoder teknolojisiyle tamamen çözüldü.
-   •   Donanım Hızlandırma: Oynatıcı, cihazın kendi grafik işlemcisini (Hardware) öncelikli kullanarak daha akıcı ve az ısınan bir izleme deneyimi sunar. Hata durumunda otomatik olarak yazılımsal çözücüye (Software Fallback) geçiş yapar.
-2. Premium Dil Seçim Ekranı:
-   •   Yenilenen Arayüz: Uygulama açılışındaki dil seçim ekranı, Smart TV deneyimine uygun sinematik gradyanlar ve parlama efektleri ile "Premium" bir görünüme kavuşturuldu.
-   •   İngilizce Önceliği: Küresel kullanım standartlarına uygun olarak İngilizce dili listenin en başına taşındı ve otomatik odaklanma sağlandı.
-   •   Glassmorphism Tasarımı: Dil butonları modern yarı saydam tasarıma ve odaklandığında pürüzsüz büyüme (scale) animasyonuna sahip oldu.
-3. Cihaz Uyumluluğu ve Güvenlik:
-   •   Android 15 (16 KB) Uyumluluğu: Google Play Console'da bildirilen "16 KB bellek sayfası" hatası, Target SDK 34 (Android 14) optimizasyonu ile giderilerek tüm yeni nesil Android TV cihazlarıyla tam uyumlu hale getirildi.
-   •   Ağ Güvenliği (Network Security): TMDB ve EPG servisleri için HTTPS zorunlu tutulurken, IPTV yayınları için ağ protokolleri esnetilerek tüm kaynakların sorunsuz açılması sağlandı.
-4. Performans ve Bellek Yönetimi:
-   •   Akıllı İzleme Geçmişi: "Kaldığın Yerden" listesi artık arka planda daha az RAM tüketecek şekilde optimize edildi.
-   •   Hızlı Arama: Arama algoritması iyileştirilerek sonuçların anlık ve akıcı gelmesi sağlandı.
-5. EK düzenlemeler, İyileştirmeler:
-1.Gelişmiş Yükleme Göstergesi:
-◦Ekranın ortasındaki Play/Pause butonunun etrafına dairesel bir yükleniyor (ProgressBar) halkası eklendi.
-◦Yayın açılmaya çalışırken veya ara belleğe alma (buffering) sırasında bu halka otomatik olarak döner, yayın başladığında ise gizlenir.
-2.Yeni Kumanda Kısayolları (TV & Mobil):
-◦5 Tuşu (Bilgi Paneli): Artık sadece teknik detayları (Çözünürlük, FPS, Codec) değil, o an oynatılan video linkini (URL) de en altta gösterir.
-◦6 Tuşu (Hızlı Liste): İzleme deneyimini bölmeden ekranın sağ tarafında o anki kategoriye ait kanal/içerik listesini açar. Kullanıcı buradan yukarı/aşağı ve OK tuşlarıyla yayını kesmeden diğer içeriklere göz atabilir ve seçim yapabilir.
-◦7 - 9 Tuşları (Büyük Atlama): Uzun içeriklerde (Film/Dizi) tek basışta +/- 10 dakikalık devasa zaman atlamaları yapar.
-◦8 Tuşu (Uyku Zamanlayıcısı): 15, 30, 60, 90, 120 dakikalık otomatik kapanma süreleri bu tuşa taşındı.
-3.Güvenlik ve Gizlilik:
-◦Yayın yüklenmesi 3 kez başarısız olduğunda ekrana gelen hata mesajından video linki (URL) kaldırıldı. Artık kullanıcı adı ve şifre gibi hassas bilgiler hata ekranında görünmeyecek.
-4.Hızlı Liste Görseli:
-◦Hızlı liste için TV kumandasına uygun, seçili öğeyi belirginleştiren özel bir list_selector_bg tasarımı oluşturuldu.

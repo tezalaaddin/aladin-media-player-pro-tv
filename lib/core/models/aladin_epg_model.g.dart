@@ -106,7 +106,7 @@ const EpgProgramModelSchema = CollectionSchema(
   getId: _epgProgramModelGetId,
   getLinks: _epgProgramModelGetLinks,
   attach: _epgProgramModelAttach,
-  version: '3.1.0+1',
+  version: '3.3.2',
 );
 
 int _epgProgramModelEstimateSize(

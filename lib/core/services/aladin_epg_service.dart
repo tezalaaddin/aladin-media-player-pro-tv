@@ -1,4 +1,4 @@
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import '../database/aladin_isar_service.dart';
 import '../models/aladin_epg_model.dart';
 import 'aladin_epg_engine.dart';

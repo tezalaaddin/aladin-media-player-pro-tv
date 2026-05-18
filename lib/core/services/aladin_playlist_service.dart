@@ -1,4 +1,4 @@
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import '../database/aladin_isar_service.dart';
 import '../models/aladin_category_model.dart';
 import '../models/aladin_channel_model.dart';
