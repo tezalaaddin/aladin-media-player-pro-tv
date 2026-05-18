@@ -9,6 +9,9 @@ class EpgProgramModel {
   @Index()
   late String channelId;
 
+  @Index()
+  late String normalizedChannelId;
+
   late String title;
   String? description;
   String? category;

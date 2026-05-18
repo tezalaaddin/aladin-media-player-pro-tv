@@ -35,19 +35,19 @@ class _SettingsPageState extends State<SettingsPage>
   PackageInfo? _packageInfo;
 
   // Focus Nodes
-  final _fnM3uUrl = FocusNode();
-  final _fnM3uName = FocusNode();
-  final _fnM3uBtn = FocusNode();
+  final _fnM3uUrl = FocusNode(debugLabel: 'settings_m3u_url_field');
+  final _fnM3uName = FocusNode(debugLabel: 'settings_m3u_name_field');
+  final _fnM3uBtn = FocusNode(debugLabel: 'settings_m3u_btn');
 
-  final _fnXtSrv = FocusNode();
-  final _fnXtUser = FocusNode();
-  final _fnXtPass = FocusNode();
-  final _fnXtName = FocusNode();
-  final _fnXtBtn = FocusNode();
+  final _fnXtSrv = FocusNode(debugLabel: 'settings_xt_srv_field');
+  final _fnXtUser = FocusNode(debugLabel: 'settings_xt_user_field');
+  final _fnXtPass = FocusNode(debugLabel: 'settings_xt_pass_field');
+  final _fnXtName = FocusNode(debugLabel: 'settings_xt_name_field');
+  final _fnXtBtn = FocusNode(debugLabel: 'settings_xt_btn');
 
-  final _fnLocName = FocusNode();
-  final _fnLocBtn = FocusNode();
-  final _fnEpgBtn = FocusNode();
+  final _fnLocName = FocusNode(debugLabel: 'settings_loc_name_field');
+  final _fnLocBtn = FocusNode(debugLabel: 'settings_loc_btn');
+  final _fnEpgBtn = FocusNode(debugLabel: 'settings_epg_btn');
 
   bool _importing = false;
   bool _epgSyncing = false;
@@ -833,8 +833,8 @@ class _TVTextFieldState extends State<_TVTextField> {
   @override
   void initState() {
     super.initState();
-    _navNode = FocusNode();
-    _textNode = widget.focusNode ?? FocusNode(skipTraversal: true);
+    _navNode = FocusNode(debugLabel: 'tv_textfield_nav');
+    _textNode = widget.focusNode ?? FocusNode(debugLabel: 'tv_textfield_input', skipTraversal: true);
     
     _navNode.addListener(() { if(mounted) setState(() => _isFocused = _navNode.hasFocus); });
     

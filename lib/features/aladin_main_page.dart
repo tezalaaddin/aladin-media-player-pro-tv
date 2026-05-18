@@ -68,6 +68,19 @@ class _MainPageState extends State<MainPage> {
     if (event is KeyRepeatEvent) return KeyEventResult.handled;
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
+    // ── KESİN ÇÖZÜM: Yazı alanı kontrolü
+    final primaryFocus = FocusManager.instance.primaryFocus;
+    bool isEditable = false;
+    
+    if (primaryFocus != null) {
+      final dbg = primaryFocus.debugLabel?.toLowerCase() ?? '';
+      isEditable = primaryFocus.context?.widget is EditableText ||
+                   primaryFocus.context?.findAncestorWidgetOfExactType<EditableText>() != null ||
+                   dbg.contains('editable') ||
+                   dbg.contains('field') ||
+                   dbg.contains('input');
+    }
+
     final now = DateTime.now();
     if (_lastKeyEventTime != null && now.difference(_lastKeyEventTime!) < const Duration(milliseconds: 300)) {
       return KeyEventResult.handled;
@@ -75,17 +88,35 @@ class _MainPageState extends State<MainPage> {
     _lastKeyEventTime = now;
 
     final key = event.logicalKey;
-    if (key == LogicalKeyboardKey.colorF0Red || key == LogicalKeyboardKey.f1) {
-      _goTo(0);
-      return KeyEventResult.handled;
-    } else if (key == LogicalKeyboardKey.colorF1Green || key == LogicalKeyboardKey.f2) {
-      _goTo(1);
-      return KeyEventResult.handled;
-    } else if (key == LogicalKeyboardKey.colorF2Yellow || key == LogicalKeyboardKey.f3) {
-      _goTo(2);
-      return KeyEventResult.handled;
-    } else if (key == LogicalKeyboardKey.colorF3Blue || key == LogicalKeyboardKey.f4) {
-      _goTo(5);
+    final label = event.logicalKey.keyLabel;
+
+    // Navigasyon Haritası
+    final Map<String, int> navMap = {
+      '1': 0, // Live TV
+      '2': 1, // Movies
+      '3': 2, // Series
+      '4': 4, // Search
+      '5': 3, // Favorites
+      '6': 5, // Settings
+    };
+
+    // Arama (4) ve Ayarlar (5) sayfalarında sayı kısayollarını tamamen devre dışı bırakıyoruz.
+    // Ayrıca herhangi bir sayfada metin alanındaysak da engelliyoruz.
+    if ((_index == 4 || _index == 5 || isEditable) && navMap.containsKey(label)) {
+      return KeyEventResult.ignored;
+    }
+
+    int? targetIndex;
+    if (key == LogicalKeyboardKey.colorF0Red || key == LogicalKeyboardKey.f1) targetIndex = 0;
+    else if (key == LogicalKeyboardKey.colorF1Green || key == LogicalKeyboardKey.f2) targetIndex = 1;
+    else if (key == LogicalKeyboardKey.colorF2Yellow || key == LogicalKeyboardKey.f3) targetIndex = 2;
+    else if (key == LogicalKeyboardKey.colorF3Blue || key == LogicalKeyboardKey.f4) targetIndex = 5;
+    else if (navMap.containsKey(label)) targetIndex = navMap[label];
+
+    if (targetIndex != null) {
+      _goTo(targetIndex);
+      // Navigasyon barındaki ilgili butona odaklan
+      _navNodes[targetIndex].requestFocus();
       return KeyEventResult.handled;
     }
 
@@ -350,28 +381,34 @@ class _SideNavBar extends StatelessWidget {
                   child: const Icon(Icons.live_tv, color: Colors.white, size: 28),
                 ),
                 const SizedBox(width: 12),
-                const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Aladin Player',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.5,
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Aladin Player',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    Text(
-                      'FOR SMART TV',
-                      style: TextStyle(
-                        color: AppTheme.accent,
-                        fontSize: 8,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
+                      Text(
+                        'FOR SMART TV',
+                        style: TextStyle(
+                          color: AppTheme.accent,
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -390,6 +427,7 @@ class _SideNavBar extends StatelessWidget {
                     onTap: () => onTap(0),
                     onRightPressed: onRightPressed,
                     colorHint: Colors.red,
+                    numberHint: '1',
                     autofocus: currentIndex == 0, 
                   ),
                   _SideNavItem(
@@ -400,6 +438,7 @@ class _SideNavBar extends StatelessWidget {
                     onTap: () => onTap(1),
                     onRightPressed: onRightPressed,
                     colorHint: Colors.green,
+                    numberHint: '2',
                   ),
                   _SideNavItem(
                     focusNode: nodes[2],
@@ -409,6 +448,7 @@ class _SideNavBar extends StatelessWidget {
                     onTap: () => onTap(2),
                     onRightPressed: onRightPressed,
                     colorHint: Colors.yellow,
+                    numberHint: '3',
                   ),
                   _SideNavItem(
                     focusNode: nodes[4],
@@ -417,6 +457,8 @@ class _SideNavBar extends StatelessWidget {
                     isSelected: currentIndex == 4,
                     onTap: () => onTap(4),
                     onRightPressed: onRightPressed,
+                    colorHint: Colors.blue,
+                    numberHint: '4',
                   ),
                   _SideNavItem(
                     focusNode: nodes[3],
@@ -425,6 +467,7 @@ class _SideNavBar extends StatelessWidget {
                     isSelected: currentIndex == 3,
                     onTap: () => onTap(3),
                     onRightPressed: onRightPressed,
+                    numberHint: '5',
                   ),
                   _SideNavItem(
                     focusNode: nodes[5],
@@ -433,7 +476,7 @@ class _SideNavBar extends StatelessWidget {
                     isSelected: currentIndex == 5,
                     onTap: () => onTap(5),
                     onRightPressed: onRightPressed,
-                    colorHint: Colors.blue,
+                    numberHint: '6',
                   ),
                 ],
               ),
@@ -452,6 +495,7 @@ class _SideNavItem extends StatefulWidget {
   final VoidCallback onTap;
   final VoidCallback? onRightPressed;
   final Color? colorHint;
+  final String? numberHint;
   final bool autofocus;
   final FocusNode? focusNode;
 
@@ -462,6 +506,7 @@ class _SideNavItem extends StatefulWidget {
     required this.onTap,
     this.onRightPressed,
     this.colorHint,
+    this.numberHint,
     this.autofocus = false,
     this.focusNode,
   });
@@ -543,14 +588,23 @@ class _SideNavItemState extends State<_SideNavItem> {
                     ),
                   ),
                 ),
-                if (widget.colorHint != null)
+                if (widget.numberHint != null)
                   Container(
-                    width: 10,
-                    height: 10,
+                    width: 22,
+                    height: 22,
                     decoration: BoxDecoration(
-                      color: widget.colorHint,
-                      shape: BoxShape.circle,
+                      color: widget.colorHint ?? AppTheme.textMuted.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(6),
                       border: Border.all(color: Colors.white24, width: 1),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      widget.numberHint!,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
               ],

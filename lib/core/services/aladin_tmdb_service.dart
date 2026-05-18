@@ -11,13 +11,16 @@ class TmdbService {
   // API key'i build zamanında --dart-define=TMDB_API_KEY=xxxx olarak geçin.
   // Örnek: flutter build appbundle --release --dart-define=TMDB_API_KEY=your_key
   // Geliştirme için fallback bırakıldı; üretimde mutlaka --dart-define kullanın.
-  static const _apiKey = String.fromEnvironment(
-    'TMDB_API_KEY',
-    defaultValue: '2af32eb18204fd1199147d7deacae125',
-  );
+  static const _apiKey = String.fromEnvironment('TMDB_API_KEY');
 
-  // Hafıza içi basit bir cache sistemi
+  // Hafıza içi basit bir cache sistemi (maks 200 giriş)
   final Map<String, Map<String, dynamic>> _seriesCache = {};
+
+  void _checkCacheLimit() {
+    if (_seriesCache.length > 200) {
+      _seriesCache.clear(); // Simple clear if too big
+    }
+  }
 
   /// Başlıktaki playlist sıra numaralarını, kalite eklerini ve dizi sezon/bölüm bilgilerini temizler.
   String cleanTitle(String title) {
@@ -134,6 +137,7 @@ class TmdbService {
       };
 
       // Save to cache
+      _checkCacheLimit();
       _seriesCache[clean] = data;
       return data;
     } catch (_) {

@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
 import 'core/database/aladin_isar_service.dart';
 import 'core/services/aladin_channel_service.dart';
@@ -18,7 +17,11 @@ Future<void> main() async {
   
   // 🔧 TV UYUMLU: Üretim modunda shadow ve render hatalarını sustur
   ErrorWidget.builder = (FlutterErrorDetails details) {
-    if (kReleaseMode || details.exception.toString().contains('blur radius')) {
+    if (details.exception.toString().contains('blur radius')) {
+      return const SizedBox.shrink();
+    }
+    if (kReleaseMode) {
+      debugPrint('Flutter Error: ${details.exception}');
       return const SizedBox.shrink();
     }
     return ErrorWidget(details.exception);
@@ -33,7 +36,6 @@ Future<void> main() async {
   PaintingBinding.instance.imageCache.maximumSize = 50; 
   PaintingBinding.instance.imageCache.maximumSizeBytes = 50 << 20; // 50 MB
   
-  MediaKit.ensureInitialized();
   runApp(const AladinApp());
 }
 
@@ -203,52 +205,112 @@ class _LangSelect extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final langs = AppStrings.getLanguageNames();
-    final flags = {
-      'tr': '🇹🇷',
-      'en': '🇬🇧',
-      'de': '🇩🇪',
-      'fr': '🇫🇷',
-    };
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.live_tv, color: AppTheme.accent, size: 72),
-              const SizedBox(height: 28),
-              const Column(
-                children: [
-                  Text('Aladin Media Player Pro',
-                      style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
-                  Text(
-                    'FOR SMART TV',
-                    style: TextStyle(
-                      color: AppTheme.accent,
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 40),
-              Wrap(
-                spacing: 16,
-                runSpacing: 16,
-                alignment: WrapAlignment.center,
-                children: langs.entries.map((e) => _LangBtn(
-                  flag: flags[e.key] ?? '🌐', 
-                  label: e.value, 
-                  autofocus: e.key == 'tr', 
-                  onTap: () => onSelect(e.key)
-                )).toList(),
-              ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF1A1A1A),
+              Color(0xFF000000),
+              Color(0xFF0A0A0A),
             ],
+            stops: [0.0, 0.5, 1.0],
           ),
+        ),
+        child: Stack(
+          children: [
+            // Süsleme amaçlı arka plan deseni (opsiyonel)
+            Positioned(
+              right: -100,
+              top: -100,
+              child: Container(
+                width: 300,
+                height: 300,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppTheme.accent.withValues(alpha: 0.05),
+                ),
+              ),
+            ),
+            Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Premium Logo Alanı
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.accent.withValues(alpha: 0.2),
+                            blurRadius: 40,
+                            spreadRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.live_tv, color: AppTheme.accent, size: 84),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Aladin Media Player Pro',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    const Text(
+                      'PREMIUM SMART TV EXPERIENCE',
+                      style: TextStyle(
+                        color: AppTheme.accent,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 3.0,
+                      ),
+                    ),
+                    const SizedBox(height: 48),
+                    const Text(
+                      'Select Language / Dil Seçiniz',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    // Buton Izgarası
+                    SizedBox(
+                      width: 800, // TV genişliği için sınırla
+                      child: Wrap(
+                        spacing: 20,
+                        runSpacing: 20,
+                        alignment: WrapAlignment.center,
+                        children: langs.entries.map((e) {
+                          final parts = e.value.split(' ');
+                          final flag = parts[0];
+                          final label = parts.skip(1).join(' ');
+                          
+                          return _LangBtn(
+                            flag: flag,
+                            label: label,
+                            autofocus: e.key == 'en', // Kullanıcının isteği: İngilizce başta ve odaklı
+                            onTap: () => onSelect(e.key),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -260,22 +322,58 @@ class _LangBtn extends StatefulWidget {
   final VoidCallback onTap;
   final bool autofocus;
 
-  const _LangBtn({required this.flag, required this.label, required this.onTap, this.autofocus = false});
+  const _LangBtn({
+    required this.flag,
+    required this.label,
+    required this.onTap,
+    this.autofocus = false,
+  });
 
   @override
   State<_LangBtn> createState() => _LangBtnState();
 }
 
-class _LangBtnState extends State<_LangBtn> {
+class _LangBtnState extends State<_LangBtn> with SingleTickerProviderStateMixin {
   bool _focused = false;
+  late AnimationController _scaleCtrl;
+  late Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _scaleCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
+    _scale = Tween<double>(begin: 1.0, end: 1.08).animate(
+      CurvedAnimation(parent: _scaleCtrl, curve: Curves.easeOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _scaleCtrl.dispose();
+    super.dispose();
+  }
+
+  void _onFocus(bool v) {
+    setState(() => _focused = v);
+    if (v) {
+      _scaleCtrl.forward();
+    } else {
+      _scaleCtrl.reverse();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Focus(
       autofocus: widget.autofocus,
-      onFocusChange: (v) => setState(() => _focused = v),
+      onFocusChange: _onFocus,
       onKeyEvent: (node, event) {
-        if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.select || event.logicalKey == LogicalKeyboardKey.enter)) {
+        if (event is KeyDownEvent &&
+            (event.logicalKey == LogicalKeyboardKey.select ||
+             event.logicalKey == LogicalKeyboardKey.enter)) {
           widget.onTap();
           return KeyEventResult.handled;
         }
@@ -283,29 +381,47 @@ class _LangBtnState extends State<_LangBtn> {
       },
       child: GestureDetector(
         onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          width: 300,
-          height: 60,
-          decoration: BoxDecoration(
-            color: _focused ? AppTheme.accent : AppTheme.card,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: _focused ? Colors.white : AppTheme.divider, width: _focused ? 3 : 1),
-            boxShadow: _focused ? [
-              BoxShadow(
-                color: AppTheme.accent.withValues(alpha: 0.5),
-                blurRadius: 8,
-              )
-            ] : [],
-          ),
-          transform: Matrix4.identity()..scale(_focused ? 1.05 : 1.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(widget.flag, style: const TextStyle(fontSize: 24)),
-              const SizedBox(width: 12),
-              Text(widget.label, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
-            ],
+        child: ScaleTransition(
+          scale: _scale,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 240, // Biraz daha daraltıp yan yana daha çok sığdıralım
+            height: 72,
+            decoration: BoxDecoration(
+              color: _focused ? Colors.white : Colors.white.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: _focused ? Colors.white : Colors.white24,
+                width: _focused ? 0 : 1,
+              ),
+              boxShadow: _focused
+                  ? [
+                      BoxShadow(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      )
+                    ]
+                  : [],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  widget.flag,
+                  style: const TextStyle(fontSize: 28),
+                ),
+                const SizedBox(width: 14),
+                Text(
+                  widget.label,
+                  style: TextStyle(
+                    color: _focused ? Colors.black : Colors.white,
+                    fontSize: 18,
+                    fontWeight: _focused ? FontWeight.w800 : FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

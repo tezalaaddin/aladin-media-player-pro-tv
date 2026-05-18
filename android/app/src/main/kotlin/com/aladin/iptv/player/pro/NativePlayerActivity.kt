@@ -16,6 +16,9 @@ import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -128,6 +131,11 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
     // Buffering Timeout Logic
     private var bufferingRetryCount = 0
     private var isPersistentError = false
+    private var sleepTimerMinutes = 0
+    private val sleepTimerRunnable = Runnable {
+        saveCurrentPosition()
+        finish()
+    }
     
     private val bufferingStatusRunnable = Runnable {
         if (player?.playbackState == Player.STATE_BUFFERING && player?.playWhenReady == true) {
@@ -200,6 +208,7 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
     }
 
     private val prepareRunnable = Runnable {
+        if (isFinishing || isDestroyed) return@Runnable
         initializePlayer()
         playCurrentChannel()
     }
@@ -207,8 +216,13 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        window.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN)
         setContentView(R.layout.activity_player)
+
+        // Modern Fullscreen/Hide Navigation Bar API
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        controller.hide(WindowInsetsCompat.Type.systemBars())
+        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
 
         prefs = getSharedPreferences("AladinPlayerPrefs", Context.MODE_PRIVATE)
         channelUrls = intent.getStringArrayListExtra("URL_LIST")
@@ -218,8 +232,19 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
         channelRatings = intent.getStringArrayListExtra("RATING_LIST")
         channelYears = intent.getStringArrayListExtra("YEAR_LIST")
         channelTypes = intent.getStringArrayListExtra("TYPE_LIST")
-        channelFavs = (intent.getSerializableExtra("FAV_LIST") as? ArrayList<Boolean>) ?: ArrayList()
-        channelPositions = (intent.getSerializableExtra("POS_LIST") as? ArrayList<Int>) ?: ArrayList()
+        channelFavs = if (Build.VERSION.SDK_INT >= 33) {
+            intent.getSerializableExtra("FAV_LIST", ArrayList::class.java) as? ArrayList<Boolean> ?: ArrayList()
+        } else {
+            @Suppress("DEPRECATION")
+            (intent.getSerializableExtra("FAV_LIST") as? ArrayList<Boolean>) ?: ArrayList()
+        }
+
+        channelPositions = if (Build.VERSION.SDK_INT >= 33) {
+            intent.getSerializableExtra("POS_LIST", ArrayList::class.java) as? ArrayList<Int> ?: ArrayList()
+        } else {
+            @Suppress("DEPRECATION")
+            (intent.getSerializableExtra("POS_LIST") as? ArrayList<Int>) ?: ArrayList()
+        }
         currentIndex = intent.getIntExtra("CURRENT_INDEX", 0)
 
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -284,11 +309,11 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
     }
 
     private fun setupLabels() {
-        btnSubtitles.text = "● ${t("subtitles", "Altyazı")}"
-        btnAudio.text = "● ${t("audio", "Ses")}"
-        btnQuality.text = "● ${t("quality", "Kalite")}"
-        btnAspect.text = "● ${t("aspect", "Oran")}"
-        btnFavorite.text = "[0] ${t("favorites_short", "Favori")}"
+        btnSubtitles.text = "1 ● ${t("subtitles", "Altyazı")}"
+        btnAudio.text = "2 ● ${t("audio", "Ses")}"
+        btnQuality.text = "3 ● ${t("quality", "Kalite")}"
+        btnAspect.text = "4 ● ${t("aspect", "Oran")}"
+        btnFavorite.text = "0 [★] ${t("favorites_short", "Favori")}"
         
         tvGuideNav.text = t("guide_channel", "↕ Kanal Değiştir")
         
@@ -309,8 +334,6 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
         btnQuality.setOnClickListener { cycleTracks(C.TRACK_TYPE_VIDEO) }
         btnAspect.setOnClickListener { cycleAspectRatio() }
         btnFavorite.setOnClickListener { toggleFavorite() }
-
-        // Star icon is now informational only (passive) as requested
     }
 
     // --- Gesture Implementation ---
@@ -429,36 +452,40 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
     private fun initializePlayer() {
         if (player != null) return // Already initialized
 
-        // 1. Renderers Factory: Donanım öncelikli, destek yoksa FFmpeg fallback
+        // Build 14 "Hibrit Decoder" mantığına geri dönüyoruz.
+        // EXTENSION_RENDERER_MODE_ON: Önce donanım (HW), başarısız olursa yazılım (SW/FFmpeg) kullanır.
+        // Bu mod, "hızlı oynatma" ve "görüntü takılması" sorunlarını en iyi çözen dengeli moddur.
         val renderersFactory = DefaultRenderersFactory(this)
             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
             .setEnableDecoderFallback(true)
             .setEnableAudioFloatOutput(true)
 
-        // 2. LoadControl (Buffer Ayarları)
+        // LoadControl ayarlarını standart ve kararlı değerlere çekiyoruz
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
-                15000, // minBufferMs (Daha hızlı başlangıç için düşürüldü)
+                15000, // minBufferMs
                 50000, // maxBufferMs
-                1000,  // bufferForPlaybackMs (1s yeterli)
-                2500   // bufferForPlaybackAfterRebufferMs
+                1500,  // bufferForPlaybackMs
+                5000   // bufferForPlaybackAfterRebufferMs
             )
-            .setPrioritizeTimeOverSizeThresholds(true)
             .build()
 
-        // 3. Track Selector (Stereo Downmix)
+        // Track Selector
         trackSelector = DefaultTrackSelector(this)
-        trackSelector.parameters = trackSelector.buildUponParameters()
-            .setMaxVideoSizeSd()
-            .setMaxAudioChannelCount(2) // Cihaz desteklemiyorsa 2 kanala düşür
-            .build()
+        
+        // Ses ve Görüntü senkronizasyonu için donanım kısıtlamalarını esnetiyoruz
+        val trackParams = trackSelector.buildUponParameters()
+            .setAllowVideoMixedMimeTypeAdaptiveness(true)
+            .setAllowAudioMixedMimeTypeAdaptiveness(true)
+        
+        trackSelector.parameters = trackParams.build()
 
         val audioAttributes = AudioAttributes.Builder()
             .setUsage(C.USAGE_MEDIA)
             .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
             .build()
 
-        // 4. Player Oluşturma
+        // Player Oluşturma
         player = ExoPlayer.Builder(this, renderersFactory)
             .setTrackSelector(trackSelector)
             .setLoadControl(loadControl)
@@ -598,10 +625,11 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
     private fun loadPoster(posterUrl: String) {
         executor.execute {
             try {
-                val inputStream = URL(posterUrl).openStream()
-                val bitmap = BitmapFactory.decodeStream(inputStream)
-                mainHandler.post {
-                    ivPausePoster.setImageBitmap(bitmap)
+                URL(posterUrl).openStream().use { inputStream ->
+                    val bitmap = BitmapFactory.decodeStream(inputStream)
+                    mainHandler.post {
+                        ivPausePoster.setImageBitmap(bitmap)
+                    }
                 }
             } catch (e: Exception) {
                 Log.e("ALADIN", "Poster Load Error: $e")
@@ -650,10 +678,21 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
                 }
                 return true
             }
-            KeyEvent.KEYCODE_PROG_RED, KeyEvent.KEYCODE_F1 -> { cycleTracks(C.TRACK_TYPE_TEXT); return true }
-            KeyEvent.KEYCODE_PROG_GREEN, KeyEvent.KEYCODE_F2 -> { cycleTracks(C.TRACK_TYPE_AUDIO); return true }
-            KeyEvent.KEYCODE_PROG_YELLOW, KeyEvent.KEYCODE_F3 -> { cycleTracks(C.TRACK_TYPE_VIDEO); return true }
-            KeyEvent.KEYCODE_PROG_BLUE, KeyEvent.KEYCODE_F4 -> { cycleAspectRatio(); return true }
+            KeyEvent.KEYCODE_PROG_RED, KeyEvent.KEYCODE_F1, KeyEvent.KEYCODE_1, KeyEvent.KEYCODE_NUMPAD_1 -> { cycleTracks(C.TRACK_TYPE_TEXT); return true }
+            KeyEvent.KEYCODE_PROG_GREEN, KeyEvent.KEYCODE_F2, KeyEvent.KEYCODE_2, KeyEvent.KEYCODE_NUMPAD_2 -> { cycleTracks(C.TRACK_TYPE_AUDIO); return true }
+            KeyEvent.KEYCODE_PROG_YELLOW, KeyEvent.KEYCODE_F3, KeyEvent.KEYCODE_3, KeyEvent.KEYCODE_NUMPAD_3 -> { cycleTracks(C.TRACK_TYPE_VIDEO); return true }
+            KeyEvent.KEYCODE_PROG_BLUE, KeyEvent.KEYCODE_F4, KeyEvent.KEYCODE_4, KeyEvent.KEYCODE_NUMPAD_4 -> { cycleAspectRatio(); return true }
+            KeyEvent.KEYCODE_5, KeyEvent.KEYCODE_NUMPAD_5 -> { showPlayerInfo(); return true }
+            KeyEvent.KEYCODE_6, KeyEvent.KEYCODE_NUMPAD_6 -> { showOSD(); return true }
+            KeyEvent.KEYCODE_7, KeyEvent.KEYCODE_NUMPAD_7 -> { 
+                player?.let { p -> if (p.duration != C.TIME_UNSET) accumulateSeek(-600000L) }
+                return true 
+            }
+            KeyEvent.KEYCODE_8, KeyEvent.KEYCODE_NUMPAD_8 -> { 
+                player?.let { p -> if (p.duration != C.TIME_UNSET) accumulateSeek(600000L) }
+                return true 
+            }
+            KeyEvent.KEYCODE_9, KeyEvent.KEYCODE_NUMPAD_9 -> { cycleSleepTimer(); return true }
             KeyEvent.KEYCODE_0, KeyEvent.KEYCODE_NUMPAD_0 -> { toggleFavorite(); return true }
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
                 if (isPersistentError) {
@@ -828,8 +867,34 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
         player?.let { p ->
             // Eğer video duraklatılmışsa (pause), OSD açık kalsın
             if (p.isPlaying) {
-                mainHandler.postDelayed(hideRunnable, 2500) // Play iken 2.5 saniye sonra kapat
+                mainHandler.postDelayed(hideRunnable, 5000) // Play iken 5 saniye sonra kapat (Claude suggested 4-5s)
             }
+        }
+    }
+
+    private fun showPlayerInfo() {
+        player?.let { p ->
+            val format = p.videoFormat ?: return@let
+            val resolution = "${format.width}x${format.height}"
+            val fps = if (format.frameRate > 0) "${format.frameRate.toInt()} FPS" else ""
+            val codec = format.sampleMimeType?.substringAfterLast("/")?.uppercase() ?: ""
+            
+            val info = "INFO: $resolution $fps | $codec"
+            showStatus(info, false)
+        }
+    }
+
+    private fun cycleSleepTimer() {
+        val options = listOf(0, 15, 30, 60, 90, 120)
+        val nextIdx = (options.indexOf(sleepTimerMinutes) + 1) % options.size
+        sleepTimerMinutes = options[nextIdx]
+        
+        mainHandler.removeCallbacks(sleepTimerRunnable)
+        if (sleepTimerMinutes > 0) {
+            mainHandler.postDelayed(sleepTimerRunnable, sleepTimerMinutes * 60 * 1000L)
+            showStatus("${t("sleep_timer", "Uyku Zamanlayıcı")}: $sleepTimerMinutes min", false)
+        } else {
+            showStatus("${t("sleep_timer", "Uyku Zamanlayıcı")}: ${t("off", "Kapalı")}", false)
         }
     }
 
@@ -869,15 +934,22 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
 
     override fun onPause() {
         super.onPause()
-        player?.pause()
         mainHandler.removeCallbacks(updateProgressAction)
-        saveCurrentPosition()
-        if (isFinishing) releasePlayer()
+        
+        // PiP modunda değilsek oynatmayı durdur ve serbest bırak
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInPictureInPictureMode) {
+            // PiP modundayız, devam et
+        } else {
+            player?.pause()
+            saveCurrentPosition()
+            releasePlayer() // TV'de arka planda ses kalmaması için agresif release
+        }
     }
 
     override fun onDestroy() {
-        super.onDestroy()
+        mainHandler.removeCallbacksAndMessages(null)
         releasePlayer()
         executor.shutdown()
+        super.onDestroy()
     }
 }

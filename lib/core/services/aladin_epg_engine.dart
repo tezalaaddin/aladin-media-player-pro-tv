@@ -10,7 +10,6 @@ import '../database/aladin_isar_service.dart';
 import '../models/aladin_channel_model.dart';
 import '../models/aladin_epg_model.dart';
 import '../state/aladin_app_prefs.dart';
-import '../state/aladin_app_state.dart';
 
 /// AladinEpgEngine — Universal EPG sync + logo enrichment engine.
 class AladinEpgEngine extends ChangeNotifier {
@@ -25,7 +24,6 @@ class AladinEpgEngine extends ChangeNotifier {
 
   static const _kSyncKeyMs = 'epg_last_sync_ms';
   static const _kSyncStatus = 'epg_sync_status';
-  static const _kSyncHours = 144; // 6 days
 
   bool _syncing = false;
   double _progress = 0;
@@ -54,8 +52,8 @@ class AladinEpgEngine extends ChangeNotifier {
     s = s.replaceAll(RegExp(r'\s*\([^)]*\)\s*$'), '');
     s = s.replaceAll(RegExp(r'^[A-Za-z]{1,6}\s*[|:]\s*'), '');
     s = s.replaceAll(RegExp(r'\.[a-zA-Z]{2,3}$'), '');
-    const _tr = {'İ':'I','ı':'i','Ş':'S','ş':'s','Ğ':'G','ğ':'g','Ü':'U','ü':'u','Ö':'O','ö':'o','Ç':'C','ç':'c'};
-    for (final e in _tr.entries) { s = s.replaceAll(e.key, e.value); }
+    const tr = {'İ':'I','ı':'i','Ş':'S','ş':'s','Ğ':'G','ğ':'g','Ü':'U','ü':'u','Ö':'O','ö':'o','Ç':'C','ç':'c'};
+    for (final e in tr.entries) { s = s.replaceAll(e.key, e.value); }
     s = s.replaceAll(RegExp(r'\b(4K|UHD|FHD|1080[PpIi]|HD\+?|720[Pp]|SD|HEVC|H\.?265|H\.?264|AVC|MPEG2)\b', caseSensitive: false), '');
     s = s.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '');
     return s.toLowerCase();
@@ -122,62 +120,24 @@ class AladinEpgEngine extends ChangeNotifier {
 
       if (!xml.contains('<tv') && !xml.contains('<programme')) return false;
 
-      await _parseAndStore(xml, sharedBestPrograms);
+      final result = await compute(_parseXmlWorker, xml);
+      
+      // Merge results
+      for (final candidate in result.programs) {
+        final normCid = normalizeId(candidate.channelId);
+        final dedupKey = '$normCid|${candidate.startTime.millisecondsSinceEpoch}';
+        final existing = sharedBestPrograms[dedupKey];
+        if (existing == null || (!existing.hasDescription && candidate.hasDescription)) {
+          sharedBestPrograms[dedupKey] = candidate;
+        }
+      }
+
+      await _enrichChannelLogos(IsarService.instance.db, result.channels);
+      
       return true;
     } catch (e) {
+      debugPrint('[EPG] _trySource error: $e');
       return false;
-    }
-  }
-
-  Future<void> _parseAndStore(String xml, Map<String, _BestProgramCandidate> sharedBestPrograms) async {
-    final db = IsarService.instance.db;
-    final doc = XmlDocument.parse(xml);
-    final now = DateTime.now();
-
-    final channelMeta = <String, _AladinXmlChannel>{};
-    for (final ch in doc.findAllElements('channel')) {
-      final xmlId = ch.getAttribute('id') ?? '';
-      if (xmlId.isEmpty) continue;
-      final normKey = normalizeId(xmlId);
-      channelMeta[normKey] = _AladinXmlChannel(
-        originalId: xmlId,
-        displayName: ch.findElements('display-name').firstOrNull?.innerText ?? '',
-        iconUrl: ch.findElements('icon').firstOrNull?.getAttribute('src'),
-      );
-    }
-
-    await _enrichChannelLogos(db, channelMeta);
-
-    for (final prog in doc.findAllElements('programme')) {
-      try {
-        final cid = prog.getAttribute('channel') ?? '';
-        final start = _parseDate(prog.getAttribute('start') ?? '');
-        final stop = _parseDate(prog.getAttribute('stop') ?? '');
-        if (cid.isEmpty || start == null || stop == null) continue;
-        if (stop.isBefore(now)) continue;
-        final title = prog.findElements('title').firstOrNull?.innerText ?? '';
-        if (title.isEmpty) continue;
-
-        final normalizedCid = normalizeId(cid);
-        final dedupKey = '$normalizedCid|${start.millisecondsSinceEpoch}';
-
-        final description = prog.findElements('desc').firstOrNull?.innerText;
-        final hasDescription = description != null && description.isNotEmpty;
-
-        final existing = sharedBestPrograms[dedupKey];
-        if (existing == null || (!existing.hasDescription && hasDescription)) {
-          sharedBestPrograms[dedupKey] = _BestProgramCandidate(
-            channelId: cid,
-            title: title,
-            description: description,
-            category: prog.findElements('category').firstOrNull?.innerText,
-            icon: prog.findElements('icon').firstOrNull?.getAttribute('src'),
-            startTime: start,
-            endTime: stop,
-            hasDescription: hasDescription,
-          );
-        }
-      } catch (_) {}
     }
   }
 
@@ -190,6 +150,7 @@ class AladinEpgEngine extends ChangeNotifier {
     for (final candidate in bestPrograms.values) {
       batch.add(EpgProgramModel()
         ..channelId = candidate.channelId
+        ..normalizedChannelId = normalizeId(candidate.channelId)
         ..title = candidate.title
         ..description = candidate.description
         ..category = candidate.category
@@ -199,9 +160,9 @@ class AladinEpgEngine extends ChangeNotifier {
       stored++;
 
       if (batch.length >= 500) {
-        await db.writeTxn(() => db.epgProgramModels.putAll(List.of(batch)));
+        final currentBatch = List<EpgProgramModel>.from(batch);
+        await db.writeTxn(() => db.epgProgramModels.putAll(currentBatch));
         batch.clear();
-        // Progress within 0.8 to 1.0 range
         _progress = 0.8 + (stored / total) * 0.15;
         notifyListeners();
       }
@@ -212,8 +173,14 @@ class AladinEpgEngine extends ChangeNotifier {
   }
 
   Future<void> _enrichChannelLogos(Isar db, Map<String, _AladinXmlChannel> channelMeta) async {
-    final channels = await db.channelModels.filter().contentTypeEqualTo('tv').findAll();
+    // Only fetch channels that might actually need an update or don't have a logo
+    // and only fetch necessary fields if Isar allowed, but here we'll just be careful.
+    final channels = await db.channelModels.filter()
+        .contentTypeEqualTo('tv')
+        .findAll();
+    
     if (channels.isEmpty) return;
+    
     final toUpdate = <ChannelModel>[];
     for (final ch in channels) {
       final keys = <String>[];
@@ -225,40 +192,114 @@ class AladinEpgEngine extends ChangeNotifier {
         final epgCh = channelMeta[key];
         final iconUrl = epgCh?.iconUrl;
         if (iconUrl == null || iconUrl.isEmpty) continue;
+        
         bool changed = false;
-        if (ch.epgLogoUrl != iconUrl) { ch.epgLogoUrl = iconUrl; changed = true; }
-        if (ch.logoUrl == null || ch.logoUrl!.isEmpty) { ch.logoUrl = iconUrl; changed = true; }
-        if (changed) toUpdate.add(ch);
+        if (ch.epgLogoUrl != iconUrl) {
+          ch.epgLogoUrl = iconUrl;
+          changed = true;
+        }
+        if (ch.logoUrl == null || ch.logoUrl!.isEmpty) {
+          ch.logoUrl = iconUrl;
+          changed = true;
+        }
+        
+        if (changed) {
+          toUpdate.add(ch);
+        }
         break;
       }
     }
-    if (toUpdate.isNotEmpty) await db.writeTxn(() => db.channelModels.putAll(toUpdate));
+    
+    if (toUpdate.isNotEmpty) {
+      // Write in smaller batches to avoid blocking
+      for (var i = 0; i < toUpdate.length; i += 500) {
+        final end = (i + 500 < toUpdate.length) ? i + 500 : toUpdate.length;
+        final batch = toUpdate.sublist(i, end);
+        await db.writeTxn(() => db.channelModels.putAll(batch));
+      }
+    }
+  }
+}
+
+// ── Worker Functions (Must be top-level for compute) ────────────────────────
+
+class _ParseResult {
+  final Map<String, _AladinXmlChannel> channels;
+  final List<_BestProgramCandidate> programs;
+  _ParseResult(this.channels, this.programs);
+}
+
+_ParseResult _parseXmlWorker(String xml) {
+  final doc = XmlDocument.parse(xml);
+  final now = DateTime.now();
+
+  final channels = <String, _AladinXmlChannel>{};
+  for (final ch in doc.findAllElements('channel')) {
+    final xmlId = ch.getAttribute('id') ?? '';
+    if (xmlId.isEmpty) continue;
+    final normKey = AladinEpgEngine.normalizeId(xmlId);
+    channels[normKey] = _AladinXmlChannel(
+      originalId: xmlId,
+      displayName: ch.findElements('display-name').firstOrNull?.innerText ?? '',
+      iconUrl: ch.findElements('icon').firstOrNull?.getAttribute('src'),
+    );
   }
 
-  static DateTime? _parseDate(String raw) {
+  final programs = <_BestProgramCandidate>[];
+  for (final prog in doc.findAllElements('programme')) {
     try {
-      final parts = raw.trim().split(RegExp(r'\s+'));
-      final clean = parts[0];
-      if (clean.length < 14) return null;
-      final dt = DateTime.utc(
-        int.parse(clean.substring(0, 4)),
-        int.parse(clean.substring(4, 6)),
-        int.parse(clean.substring(6, 8)),
-        int.parse(clean.substring(8, 10)),
-        int.parse(clean.substring(10, 12)),
-        int.parse(clean.substring(12, 14)),
-      );
-      if (parts.length > 1) {
-        final tz = parts[1];
-        if (tz.length == 5) {
-          final sign = tz[0] == '-' ? 1 : -1;
-          final h = int.tryParse(tz.substring(1, 3)) ?? 0;
-          final m = int.tryParse(tz.substring(3, 5)) ?? 0;
-          return dt.add(Duration(hours: sign * h, minutes: sign * m));
-        }
+      final cid = prog.getAttribute('channel') ?? '';
+      final start = _parseDateInternal(prog.getAttribute('start') ?? '');
+      final stop = _parseDateInternal(prog.getAttribute('stop') ?? '');
+      if (cid.isEmpty || start == null || stop == null) continue;
+      if (stop.isBefore(now)) continue;
+      
+      final title = prog.findElements('title').firstOrNull?.innerText ?? '';
+      if (title.isEmpty) continue;
+
+      final description = prog.findElements('desc').firstOrNull?.innerText;
+      
+      programs.add(_BestProgramCandidate(
+        channelId: cid,
+        title: title,
+        description: description,
+        category: prog.findElements('category').firstOrNull?.innerText,
+        icon: prog.findElements('icon').firstOrNull?.getAttribute('src'),
+        startTime: start,
+        endTime: stop,
+        hasDescription: description != null && description.isNotEmpty,
+      ));
+    } catch (_) {}
+  }
+
+  return _ParseResult(channels, programs);
+}
+
+DateTime? _parseDateInternal(String raw) {
+  try {
+    final parts = raw.trim().split(RegExp(r'\s+'));
+    final clean = parts[0];
+    if (clean.length < 14) return null;
+    final dt = DateTime.utc(
+      int.parse(clean.substring(0, 4)),
+      int.parse(clean.substring(4, 6)),
+      int.parse(clean.substring(6, 8)),
+      int.parse(clean.substring(8, 10)),
+      int.parse(clean.substring(10, 12)),
+      int.parse(clean.substring(12, 14)),
+    );
+    if (parts.length > 1) {
+      final tz = parts[1];
+      if (tz.length == 5) {
+        final sign = tz[0] == '-' ? 1 : -1;
+        final h = int.tryParse(tz.substring(1, 3)) ?? 0;
+        final m = int.tryParse(tz.substring(3, 5)) ?? 0;
+        return dt.add(Duration(hours: sign * h, minutes: sign * m));
       }
-      return dt;
-    } catch (_) { return null; }
+    }
+    return dt;
+  } catch (_) {
+    return null;
   }
 }
 
@@ -278,5 +319,14 @@ class _BestProgramCandidate {
   final DateTime startTime;
   final DateTime endTime;
   final bool hasDescription;
-  const _BestProgramCandidate({required this.channelId, required this.title, this.description, this.category, this.icon, required this.startTime, required this.endTime, required this.hasDescription});
+  const _BestProgramCandidate({
+    required this.channelId,
+    required this.title,
+    this.description,
+    this.category,
+    this.icon,
+    required this.startTime,
+    required this.endTime,
+    required this.hasDescription,
+  });
 }

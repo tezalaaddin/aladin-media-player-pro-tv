@@ -109,6 +109,7 @@ class _PlayerPageState extends State<PlayerPage> {
           'retry_ok': s.retryWithOk,
           'attempt': s.attempt,
           'error_detailed': s.streamErrorDetailed,
+          'sleep_timer': s.sleepTimer,
         }
       });
       

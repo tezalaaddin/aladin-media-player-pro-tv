@@ -26,7 +26,7 @@ subprojects {
         if (hasProperty("android")) {
             val android = extensions.getByName("android") as? com.android.build.gradle.BaseExtension
             android?.apply {
-                // lStar hatasını tamamen bitirmek için tüm eklentileri SDK 34'e zorla
+                // lStar hatasını tamamen bitirmek için tüm eklentileri SDK 36'ya zorla
                 compileSdkVersion(36)
                 buildToolsVersion("36.0.0")
 

@@ -52,13 +52,18 @@ const EpgProgramModelSchema = CollectionSchema(
       name: r'isNow',
       type: IsarType.bool,
     ),
-    r'startTime': PropertySchema(
+    r'normalizedChannelId': PropertySchema(
       id: 7,
+      name: r'normalizedChannelId',
+      type: IsarType.string,
+    ),
+    r'startTime': PropertySchema(
+      id: 8,
       name: r'startTime',
       type: IsarType.dateTime,
     ),
     r'title': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'title',
       type: IsarType.string,
     )
@@ -77,6 +82,19 @@ const EpgProgramModelSchema = CollectionSchema(
       properties: [
         IndexPropertySchema(
           name: r'channelId',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    ),
+    r'normalizedChannelId': IndexSchema(
+      id: -7037759498112712026,
+      name: r'normalizedChannelId',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'normalizedChannelId',
           type: IndexType.hash,
           caseSensitive: true,
         )
@@ -116,6 +134,7 @@ int _epgProgramModelEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  bytesCount += 3 + object.normalizedChannelId.length * 3;
   bytesCount += 3 + object.title.length * 3;
   return bytesCount;
 }
@@ -133,8 +152,9 @@ void _epgProgramModelSerialize(
   writer.writeDateTime(offsets[4], object.endTime);
   writer.writeString(offsets[5], object.icon);
   writer.writeBool(offsets[6], object.isNow);
-  writer.writeDateTime(offsets[7], object.startTime);
-  writer.writeString(offsets[8], object.title);
+  writer.writeString(offsets[7], object.normalizedChannelId);
+  writer.writeDateTime(offsets[8], object.startTime);
+  writer.writeString(offsets[9], object.title);
 }
 
 EpgProgramModel _epgProgramModelDeserialize(
@@ -150,8 +170,9 @@ EpgProgramModel _epgProgramModelDeserialize(
   object.endTime = reader.readDateTime(offsets[4]);
   object.icon = reader.readStringOrNull(offsets[5]);
   object.id = id;
-  object.startTime = reader.readDateTime(offsets[7]);
-  object.title = reader.readString(offsets[8]);
+  object.normalizedChannelId = reader.readString(offsets[7]);
+  object.startTime = reader.readDateTime(offsets[8]);
+  object.title = reader.readString(offsets[9]);
   return object;
 }
 
@@ -177,8 +198,10 @@ P _epgProgramModelDeserializeProp<P>(
     case 6:
       return (reader.readBool(offset)) as P;
     case 7:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 8:
+      return (reader.readDateTime(offset)) as P;
+    case 9:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -316,6 +339,51 @@ extension EpgProgramModelQueryWhere
               indexName: r'channelId',
               lower: [],
               upper: [channelId],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<EpgProgramModel, EpgProgramModel, QAfterWhereClause>
+      normalizedChannelIdEqualTo(String normalizedChannelId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'normalizedChannelId',
+        value: [normalizedChannelId],
+      ));
+    });
+  }
+
+  QueryBuilder<EpgProgramModel, EpgProgramModel, QAfterWhereClause>
+      normalizedChannelIdNotEqualTo(String normalizedChannelId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'normalizedChannelId',
+              lower: [],
+              upper: [normalizedChannelId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'normalizedChannelId',
+              lower: [normalizedChannelId],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'normalizedChannelId',
+              lower: [normalizedChannelId],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'normalizedChannelId',
+              lower: [],
+              upper: [normalizedChannelId],
               includeUpper: false,
             ));
       }
@@ -1102,6 +1170,142 @@ extension EpgProgramModelQueryFilter
   }
 
   QueryBuilder<EpgProgramModel, EpgProgramModel, QAfterFilterCondition>
+      normalizedChannelIdEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'normalizedChannelId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<EpgProgramModel, EpgProgramModel, QAfterFilterCondition>
+      normalizedChannelIdGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'normalizedChannelId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<EpgProgramModel, EpgProgramModel, QAfterFilterCondition>
+      normalizedChannelIdLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'normalizedChannelId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<EpgProgramModel, EpgProgramModel, QAfterFilterCondition>
+      normalizedChannelIdBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'normalizedChannelId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<EpgProgramModel, EpgProgramModel, QAfterFilterCondition>
+      normalizedChannelIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'normalizedChannelId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<EpgProgramModel, EpgProgramModel, QAfterFilterCondition>
+      normalizedChannelIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'normalizedChannelId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<EpgProgramModel, EpgProgramModel, QAfterFilterCondition>
+      normalizedChannelIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'normalizedChannelId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<EpgProgramModel, EpgProgramModel, QAfterFilterCondition>
+      normalizedChannelIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'normalizedChannelId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<EpgProgramModel, EpgProgramModel, QAfterFilterCondition>
+      normalizedChannelIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'normalizedChannelId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<EpgProgramModel, EpgProgramModel, QAfterFilterCondition>
+      normalizedChannelIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'normalizedChannelId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<EpgProgramModel, EpgProgramModel, QAfterFilterCondition>
       startTimeEqualTo(DateTime value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -1398,6 +1602,20 @@ extension EpgProgramModelQuerySortBy
   }
 
   QueryBuilder<EpgProgramModel, EpgProgramModel, QAfterSortBy>
+      sortByNormalizedChannelId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'normalizedChannelId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<EpgProgramModel, EpgProgramModel, QAfterSortBy>
+      sortByNormalizedChannelIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'normalizedChannelId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<EpgProgramModel, EpgProgramModel, QAfterSortBy>
       sortByStartTime() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'startTime', Sort.asc);
@@ -1535,6 +1753,20 @@ extension EpgProgramModelQuerySortThenBy
   }
 
   QueryBuilder<EpgProgramModel, EpgProgramModel, QAfterSortBy>
+      thenByNormalizedChannelId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'normalizedChannelId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<EpgProgramModel, EpgProgramModel, QAfterSortBy>
+      thenByNormalizedChannelIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'normalizedChannelId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<EpgProgramModel, EpgProgramModel, QAfterSortBy>
       thenByStartTime() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'startTime', Sort.asc);
@@ -1613,6 +1845,14 @@ extension EpgProgramModelQueryWhereDistinct
   }
 
   QueryBuilder<EpgProgramModel, EpgProgramModel, QDistinct>
+      distinctByNormalizedChannelId({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'normalizedChannelId',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<EpgProgramModel, EpgProgramModel, QDistinct>
       distinctByStartTime() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'startTime');
@@ -1676,6 +1916,13 @@ extension EpgProgramModelQueryProperty
   QueryBuilder<EpgProgramModel, bool, QQueryOperations> isNowProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isNow');
+    });
+  }
+
+  QueryBuilder<EpgProgramModel, String, QQueryOperations>
+      normalizedChannelIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'normalizedChannelId');
     });
   }
 

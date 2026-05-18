@@ -138,6 +138,30 @@ class PlaylistService {
     return (await _db.playlistModels.get(playlistId))!;
   }
 
+  // ── Refresh Playlist ──────────────────────────────────────────────────────
+
+  Future<void> refreshPlaylist(int playlistId, {ProgressCallback? onProgress}) async {
+    final p = await _db.playlistModels.get(playlistId);
+    if (p == null) return;
+
+    if (p.type == 'xtream') {
+      await importXtream(
+        server: p.xtreamServer!,
+        username: p.xtreamUsername!,
+        password: p.xtreamPassword!,
+        name: p.name,
+        onProgress: onProgress,
+      );
+    } else {
+      await importM3U(
+        url: p.url,
+        name: p.name,
+        isLocalFile: p.type == 'local',
+        onProgress: onProgress,
+      );
+    }
+  }
+
   // ── Import Xtream ─────────────────────────────────────────────────────────
 
   Future<PlaylistModel> importXtream({

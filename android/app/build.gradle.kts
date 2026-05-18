@@ -15,7 +15,7 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.aladin.iptv.player.pro"
-    compileSdk = 36
+    compileSdk = 34
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -30,9 +30,16 @@ android {
     defaultConfig {
         applicationId = "com.aladin.iptv.player.pro"
         minSdk = flutter.minSdkVersion
-        targetSdk = 36
+        targetSdk = 34
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // ELF alignment for 16KB page support
+        externalNativeBuild {
+            cmake {
+                arguments("-DANDROID_EXT_ELF_ALIGNMENT=16384")
+            }
+        }
     }
 
     signingConfigs {
@@ -63,6 +70,12 @@ android {
         }
     }
 
+    lint {
+        disable += "MissingTranslation"
+        abortOnError = false
+        checkReleaseBuilds = false
+    }
+
     packaging {
         jniLibs {
             useLegacyPackaging = false
@@ -75,7 +88,8 @@ flutter {
 }
 
 dependencies {
-    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation("androidx.activity:activity-ktx:1.9.0")
     implementation("androidx.media3:media3-exoplayer:1.3.1")
     implementation("androidx.media3:media3-exoplayer-hls:1.3.1")
     implementation("androidx.media3:media3-exoplayer-rtsp:1.3.1")

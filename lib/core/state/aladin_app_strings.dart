@@ -157,6 +157,7 @@ class AppStrings {
   String get retryWithOk       => _t('retryWithOk');
   String get attempt           => _t('attempt');
   String get streamErrorDetailed => _t('streamErrorDetailed');
+  String get sleepTimer       => _t('sleepTimer');
 
   // ── Settings ───────────────────────────────────────────────────────────────
   String get settingsTitle    => _t('settingsTitle');
@@ -196,14 +197,14 @@ class AppStrings {
   };
 
   static Map<String, String> getLanguageNames() => {
-    'tr': 'Türkçe',
-    'en': 'English',
-    'de': 'Deutsch',
-    'fr': 'Français',
-    'es': 'Español',
-    'ru': 'Русский',
-    'zh': '中文',
-    'ar': 'العربية',
+    'en': '🇺🇸 English',
+    'tr': '🇹🇷 Türkçe',
+    'de': '🇩🇪 Deutsch',
+    'fr': '🇫🇷 Français',
+    'es': '🇪🇸 Español',
+    'ru': '🇷🇺 Русский',
+    'zh': '🇨🇳 中文',
+    'ar': '🇸🇦 العربية',
   };
 
   static const Map<String, String> _trMap = {
@@ -335,6 +336,7 @@ class AppStrings {
     'retryWithOk':    'Yeniden denemek için OK tuşuna basın',
     'attempt':        'Deneme',
     'streamErrorDetailed': 'Bu içerik şu an açılamıyor. Lütfen internet bağlantınızı veya sunucunuzdaki yayını kontrol edin.\n\nHata Veren Adres:',
+    'sleepTimer':     'Uyku Zamanlayıcı',
     'settingsTitle':  'Aladin Media Player Pro',
     'about':          'Hakkında',
     'developer':      'Geliştirici: Aladin',
@@ -486,6 +488,7 @@ class AppStrings {
     'retryWithOk':    'Press OK to retry',
     'attempt':        'Attempt',
     'streamErrorDetailed': 'This stream cannot be opened at the moment. Please check your internet settings or the source link on your server.\n\nFailing URL:',
+    'sleepTimer':     'Sleep Timer',
     'settingsTitle':  'Aladin Media Player Pro TV',
     'about':          'About',
     'developer':      'Developer: Aladin',

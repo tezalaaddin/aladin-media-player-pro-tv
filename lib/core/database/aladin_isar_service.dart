@@ -12,7 +12,9 @@ class IsarService {
   Isar? _isar;
 
   Isar get db {
-    assert(_isar != null, 'IsarService not initialized. Call init() first.');
+    if (_isar == null) {
+      throw StateError('IsarService not initialized. Call init() first.');
+    }
     return _isar!;
   }
 

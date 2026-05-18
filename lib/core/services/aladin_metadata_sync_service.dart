@@ -22,37 +22,30 @@ class MetadataSyncService extends ChangeNotifier {
   Isar get _db => IsarService.instance.db;
 
   /// Starts the sync process for a playlist.
-  /// Finds movies and series with missing metadata and updates them.
+  /// Optimized to process only first 500 missing items to avoid OOM.
   Future<void> startSync(int playlistId, {String lang = 'tr'}) async {
     if (_isSyncing) return;
 
-    debugPrint('[MetadataSync] Checking missing metadata for playlist $playlistId (lang: $lang)...');
-
-    // Find items with missing metadata
-    final missingMovies = await _db.channelModels
+    // Find items with missing metadata - Limit to 500 items per batch
+    final missingItems = await _db.channelModels
         .filter()
         .playlistIdEqualTo(playlistId)
         .and()
         .group((q) => q.contentTypeEqualTo('movie').or().contentTypeEqualTo('series'))
         .and()
-        .group((q) => q.imdbRatingIsNull().or().imdbRatingEqualTo('0').or().imdbRatingEqualTo('0.0').or().tmdbPosterIsNull())
+        .group((q) => q.imdbRatingIsNull().or().imdbRatingEqualTo('0').or().tmdbPosterIsNull())
+        .limit(500)
         .findAll();
 
-    if (missingMovies.isEmpty) {
-      debugPrint('[MetadataSync] No items to sync.');
-      return;
-    }
+    if (missingItems.isEmpty) return;
 
     _isSyncing = true;
     _progress = 0;
     _syncedCount = 0;
-    _totalToSync = missingMovies.length;
+    _totalToSync = missingItems.length;
     notifyListeners();
 
-    debugPrint('[MetadataSync] Starting sync for $_totalToSync items.');
-
-    // We process in a queue with a delay to respect TMDb rate limits (approx 2 requests/sec)
-    _syncQueue(missingMovies, lang: lang);
+    _syncQueue(missingItems, lang: lang);
   }
 
   Future<void> _syncQueue(List<ChannelModel> items, {String lang = 'tr'}) async {
@@ -78,7 +71,7 @@ class MetadataSyncService extends ChangeNotifier {
           );
         }
 
-        if (meta != null) {
+        if (meta != null && _isSyncing) {
           await ChannelService.instance.saveTmdbMeta(
             channelId: channel.id,
             tmdbId: meta['tmdbId'],
@@ -86,29 +79,27 @@ class MetadataSyncService extends ChangeNotifier {
             poster: meta['poster'],
             overview: meta['overview'],
             year: meta['year'],
-            applyToAllEpisodes: true, // Series episodes will inherit metadata
+            applyToAllEpisodes: true,
           );
         }
       } catch (e) {
-        debugPrint('[MetadataSync] Error syncing ${channel.name}: $e');
+        debugPrint('[MetadataSync] Error: $e');
       }
 
       _syncedCount++;
       _progress = _syncedCount / _totalToSync;
 
-      // Update UI every 10 items or at the end
-      if (_syncedCount % 10 == 0 || _syncedCount == _totalToSync) {
+      if (_syncedCount % 5 == 0 || _syncedCount == _totalToSync) {
         notifyListeners();
       }
 
-      // 500ms delay to keep it ~2 requests per second
-      await Future.delayed(const Duration(milliseconds: 500));
+      // Slightly longer delay to be safer with rate limits
+      await Future.delayed(const Duration(milliseconds: 750));
     }
 
     _isSyncing = false;
-    _progress = 0.0; // Reset progress bar when done
+    _progress = 0.0;
     notifyListeners();
-    debugPrint('[MetadataSync] Sync completed. Total synced: $_syncedCount');
   }
 
   void stopSync() {
