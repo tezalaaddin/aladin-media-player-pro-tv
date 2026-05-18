@@ -6,6 +6,8 @@ import '../../core/models/aladin_playlist_model.dart';
 import '../../core/state/aladin_app_state.dart';
 import '../series/aladin_series_page.dart';
 
+import '../../core/services/aladin_metadata_sync_service.dart';
+
 class PlayerPage extends StatefulWidget {
   final ChannelModel channel;
   final List<ChannelModel> playlist; // Tüm kanal listesi
@@ -28,6 +30,8 @@ class _PlayerPageState extends State<PlayerPage> {
   @override
   void initState() {
     super.initState();
+    // ⚡ PERFORMANS: Oynatıcı açılırken arka plan senkronizasyonunu durdur
+    MetadataSyncService.instance.stopSync();
     _launch();
   }
 

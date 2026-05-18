@@ -95,14 +95,18 @@ class _AladinAppState extends State<AladinApp>
 
 
   Future<void> _boot() async {
-    await AladinPrefs.instance.load();
-    await IsarService.instance.init();
-    await AppState.instance.init();
+    // ⚡ PERFORMANS: Başlangıç işlemlerini paralel çalıştırarak açılış hızını artır
+    await Future.wait([
+      AladinPrefs.instance.load(),
+      IsarService.instance.init(),
+      AppState.instance.init(),
+    ]);
+    
     await AppState.instance.loadPlaylists();
 
     final hasLang = AladinPrefs.instance.getString('lang') != null;
     if (!mounted) return;
-    await Future.delayed(const Duration(milliseconds: 1500));
+    await Future.delayed(const Duration(milliseconds: 1000));
     if (!mounted) return;
     setState(() => _phase = hasLang ? 2 : 1);
   }

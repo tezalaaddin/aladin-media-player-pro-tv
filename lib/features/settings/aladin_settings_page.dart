@@ -520,7 +520,8 @@ class _SettingsPageState extends State<SettingsPage>
               const SizedBox(width: 10),
               Expanded(child: Text(s.langTitle, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13))),
               Text(
-                langs[state.lang] ?? state.lang,
+                // Bayraksız sadece isim kısmını gösterelim temiz olsun
+                (langs[state.lang] ?? state.lang).split(' ').skip(1).join(' '),
                 style: const TextStyle(color: AppTheme.accent, fontWeight: FontWeight.bold, fontSize: 13),
               ),
               const SizedBox(width: 10),

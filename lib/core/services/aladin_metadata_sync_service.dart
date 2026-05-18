@@ -93,8 +93,8 @@ class MetadataSyncService extends ChangeNotifier {
         notifyListeners();
       }
 
-      // Slightly longer delay to be safer with rate limits
-      await Future.delayed(const Duration(milliseconds: 750));
+      // Slightly longer delay to be safer with rate limits and CPU usage on TV
+      await Future.delayed(const Duration(milliseconds: 1000));
     }
 
     _isSyncing = false;

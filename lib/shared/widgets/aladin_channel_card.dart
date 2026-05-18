@@ -84,136 +84,138 @@ class _ChannelCardState extends State<ChannelCard> {
         ? (widget.channel.watchedSeconds / widget.channel.totalDurationSeconds).clamp(0.01, 1.0)
         : 0.0);
 
-    return Focus(
-      onFocusChange: (v) {
-        setState(() => _focused = v);
-        if (v) {
-          // Kart odaklandığında ekranın ortasına veya görünür alana gelmesini sağlar
-          Scrollable.ensureVisible(
-            context,
-            alignment: 0.5, // 0.5 değeri kartı ekranın dikey/yatay ortasına getirir
-            duration: const Duration(milliseconds: 300),
+    return RepaintBoundary(
+      child: Focus(
+        onFocusChange: (v) {
+          setState(() => _focused = v);
+          if (v) {
+            // Kart odaklandığında ekranın ortasına veya görünür alana gelmesini sağlar
+            Scrollable.ensureVisible(
+              context,
+              alignment: 0.5, // 0.5 değeri kartı ekranın dikey/yatay ortasına getirir
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+            );
+          }
+        },
+        onKeyEvent: (node, event) {
+          if (event is KeyDownEvent &&
+              (event.logicalKey == LogicalKeyboardKey.select ||
+                  event.logicalKey == LogicalKeyboardKey.enter)) {
+            widget.onTap();
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+        },
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200), // Odaklanma animasyon süresi
             curve: Curves.easeInOut,
-          );
-        }
-      },
-      onKeyEvent: (node, event) {
-        if (event is KeyDownEvent &&
-            (event.logicalKey == LogicalKeyboardKey.select ||
-                event.logicalKey == LogicalKeyboardKey.enter)) {
-          widget.onTap();
-          return KeyEventResult.handled;
-        }
-        return KeyEventResult.ignored;
-      },
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200), // Odaklanma animasyon süresi
-          curve: Curves.easeInOut,
-          width: widget.width, // AppTheme.cardWidth
-          height: widget.height, // AppTheme.cardHeight
-          margin: widget.margin ?? const EdgeInsets.only(right: 12), // Kartlar arası boşluk
-          transformAlignment: Alignment.center,
-          transform: Matrix4.identity()..scaleByDouble(isSelected ? 1.08 : 1.0, isSelected ? 1.08 : 1.0, 1.0, 1.0), // Odaklanınca %8 büyüme
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10), // Kart köşe yuvarlaması
-            border: Border.all(
-              color: isSelected ? Colors.redAccent : Colors.transparent, // Odak çerçevesi
-              width: 3.0,
+            width: widget.width, // AppTheme.cardWidth
+            height: widget.height, // AppTheme.cardHeight
+            margin: widget.margin ?? const EdgeInsets.only(right: 12), // Kartlar arası boşluk
+            transformAlignment: Alignment.center,
+            transform: Matrix4.identity()..scaleByDouble(isSelected ? 1.08 : 1.0, isSelected ? 1.08 : 1.0, 1.0, 1.0), // Odaklanınca %8 büyüme
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10), // Kart köşe yuvarlaması
+              border: Border.all(
+                color: isSelected ? Colors.redAccent : Colors.transparent, // Odak çerçevesi
+                width: 3.0,
+              ),
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: Colors.redAccent.withValues(alpha:0.4),
+                        blurRadius: 12,
+                        spreadRadius: 2,
+                      )
+                    ]
+                  : [],
             ),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: Colors.redAccent.withValues(alpha:0.4),
-                      blurRadius: 12,
-                      spreadRadius: 2,
-                    )
-                  ]
-                : [],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(isSelected ? 7 : 10),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                _buildContent(), // Afiş veya Logo
-
-                // Alt karartma gradyanı
-                Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withValues(alpha:0.05),
-                          Colors.black.withValues(alpha:0.7),
-                          Colors.black.withValues(alpha:0.9),
-                        ],
-                        stops: const [0.0, 0.4, 0.8, 1.0],
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(isSelected ? 7 : 10),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  _buildContent(), // Afiş veya Logo
+  
+                  // Alt karartma gradyanı
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withValues(alpha:0.05),
+                            Colors.black.withValues(alpha:0.7),
+                            Colors.black.withValues(alpha:0.9),
+                          ],
+                          stops: const [0.0, 0.4, 0.8, 1.0],
+                        ),
                       ),
                     ),
                   ),
-                ),
-
-                // IMDb Rozeti
-                if (rating.isNotEmpty)
-                  Positioned(
-                    top: 6, left: 6,
-                    child: _Badge(text: rating, label: 'IMDb', color: const Color(0xFFF5C518), textColor: Colors.black),
-                  ),
-
-                // Yıl Rozeti
-                if (year != null && year.isNotEmpty)
-                  Positioned(
-                    top: 6, right: 6,
-                    child: _Badge(text: year, color: Colors.black54, textColor: Colors.white, isYear: true),
-                  ),
-
-                // İsim ve EPG Bilgisi Alanı
-                Positioned(
-                  left: 0, right: 0, bottom: 0,
-                  height: 85, // 4 satır için yükseklik
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _NameBar(
-                          displayName: cleanName,
-                          channel: widget.channel,
-                          nowPlaying: _epgLoaded ? _nowPlaying : null,
-                        ),
-                      ],
+  
+                  // IMDb Rozeti
+                  if (rating.isNotEmpty)
+                    Positioned(
+                      top: 6, left: 6,
+                      child: _Badge(text: rating, label: 'IMDb', color: const Color(0xFFF5C518), textColor: Colors.black),
                     ),
-                  ),
-                ),
-
-                // İzleme İlerleme Çubuğu (VOD / Dizi)
-                if (progress > 0 && widget.channel.contentType != 'tv')
+  
+                  // Yıl Rozeti
+                  if (year != null && year.isNotEmpty)
+                    Positioned(
+                      top: 6, right: 6,
+                      child: _Badge(text: year, color: Colors.black54, textColor: Colors.white, isYear: true),
+                    ),
+  
+                  // İsim ve EPG Bilgisi Alanı
                   Positioned(
                     left: 0, right: 0, bottom: 0,
+                    height: 85, // 4 satır için yükseklik
                     child: Container(
-                      height: 4,
-                      alignment: Alignment.centerLeft,
-                      color: Colors.white10,
-                      child: FractionallySizedBox(
-                        widthFactor: progress,
-                        child: Container(
-                          decoration: const BoxDecoration(
-                            color: Colors.redAccent,
-                            boxShadow: [
-                              BoxShadow(color: Colors.redAccent, blurRadius: 4)
-                            ]
+                      padding: const EdgeInsets.all(8),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _NameBar(
+                            displayName: cleanName,
+                            channel: widget.channel,
+                            nowPlaying: _epgLoaded ? _nowPlaying : null,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+  
+                  // İzleme İlerleme Çubuğu (VOD / Dizi)
+                  if (progress > 0 && widget.channel.contentType != 'tv')
+                    Positioned(
+                      left: 0, right: 0, bottom: 0,
+                      child: Container(
+                        height: 4,
+                        alignment: Alignment.centerLeft,
+                        color: Colors.white10,
+                        child: FractionallySizedBox(
+                          widthFactor: progress,
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              color: Colors.redAccent,
+                              boxShadow: [
+                                BoxShadow(color: Colors.redAccent, blurRadius: 4)
+                              ]
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -240,7 +242,9 @@ class _ChannelCardState extends State<ChannelCard> {
         imageUrl: playlistUrl,
         httpHeaders: _kHeaders,
         fit: fit,
-        memCacheWidth: 250, memCacheHeight: 350,
+        // ⚡ PERFORMANS: memCacheWidth/Height ile RAM kullanımını 4x azalt
+        memCacheWidth: isTv ? 240 : 140,
+        memCacheHeight: isTv ? 135 : 200,
         placeholder: (_, __) => _placeholder(color),
         errorWidget: (_, __, ___) {
           if (vodUrl != null && vodUrl.isNotEmpty) return _img(vodUrl, BoxFit.cover);
@@ -265,7 +269,7 @@ class _ChannelCardState extends State<ChannelCard> {
 
   Widget _img(String url, BoxFit fit) => CachedNetworkImage(
     imageUrl: url, httpHeaders: _kHeaders, fit: fit,
-    memCacheWidth: 250, memCacheHeight: 350,
+    memCacheWidth: 200, memCacheHeight: 300,
     placeholder: (_, __) => _placeholder(_getChannelColor(widget.channel.name)),
     errorWidget: (_, __, ___) => _placeholder(_getChannelColor(widget.channel.name)),
   );

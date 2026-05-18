@@ -263,13 +263,14 @@ class ChannelService {
 
     if (reps.isNotEmpty) return reps;
 
-    // Last resort fallback (heavy on RAM)
+    // ⚡ PERFORMANS: Last resort fallback'e limit ekleyerek RAM çökmesini engelle
     final all = await _db.channelModels
         .filter()
         .playlistIdEqualTo(playlistId)
         .and()
         .contentTypeEqualTo('series')
         .sortBySortOrder()
+        .limit(2000) // Emniyet kemeri: Maksimum 2000 kayıt çek
         .findAll();
 
     final seen = <String>{};

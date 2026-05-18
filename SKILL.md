@@ -1487,12 +1487,15 @@ Claude Raporu ve Play Console önerileri doğrultusunda yapılan kritik performa
 1. Google Play Uyumluluğu (SDK 35):
    •   Google Play Console gereksinimi olan Target API 35 (Android 15) seviyesine geçiş yapıldı.
 2. 16 KB Bellek Sayfası Desteği:
-   •   Gelecek nesil Android cihazlarda uygulamanın çalışmasını engelleyen Isar kütüphanesinin 16 KB hizalama sorunu, `isar_community` kütüphanesine geçilerek ve NDK r28 ile derlenerek tamamen çözüldü.
-3. Altyapı ve Performans:
-   •   Android Gradle Plugin (AGP) 8.11.1 sürümüne yükseltildi.
-   •   "Kaldığın Yerden" listesi için dizi bölümleri tekilleştirildi (bir diziden sadece son izlenen bölüm görünür).
-   •   %3 - %90 izleme kuralı veritabanı seviyesinde optimize edildi.
-4. Gelişmiş Oynatıcı Özellikleri:
-   •   Yükleme halkası, Hızlı Liste (6 tuşu), 10 dakikalık atlama (7-9 tuşları) ve teknik detay paneli (5 tuşu) eklendi.
+   •   Android 15 ile gelen ve gelecek nesil donanımlarda zorunlu olan 16 KB bellek sayfası desteği sağlandı. 
+   •   Orijinal Isar kütüphanesinin 16 KB hizalama sorunu nedeniyle yaşanan uyumluluk krizi, projenin tamamı `isar_community` kütüphanesine taşınarak ve NDK r28 ile derlenerek tamamen çözüldü.
+3. Altyapı Modernizasyonu:
+   •   Android Gradle Plugin (AGP) 8.11.1 ve NDK 28.2 sürümlerine yükseltilerek en güncel derleme standartları uygulandı.
+4. Akıllı İçerik Yönetimi:
+   •   "Kaldığın Yerden" listesi için dizi bölümleri tekilleştirildi; bir diziden sadece en son izlenen bölüm gösterilerek liste kirliliği önlendi.
+   •   %3 - %90 izleme kuralı veritabanı (Isar) seviyesine indirilerek RAM kullanımı ve uygulama hızı optimize edildi.
+5. Gelişmiş Oynatıcı Özellikleri:
+   •   Play/Pause butonuna dairesel yükleme halkası (ProgressBar) eklendi.
+   •   Hızlı Liste (6 tuşu), 10 dakikalık zaman atlaması (7-9 tuşları) ve detaylı teknik bilgi paneli (5 tuşu) entegre edildi.
 
 ## V2.2.0+19 Sürüm Notları:
