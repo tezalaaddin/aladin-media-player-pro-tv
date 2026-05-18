@@ -145,11 +145,13 @@ class ChannelService {
       for (final ch in matches) {
         final percent = (seconds / totalSeconds) * 100;
         
-        if (percent >= 3 && percent <= 95) {
+        // Kullanıcı isteği: %3 - %90 arası izleme takibi
+        if (percent >= 3 && percent <= 90) {
           ch.lastWatched = DateTime.now();
           ch.watchedSeconds = seconds;
           ch.totalDurationSeconds = totalSeconds;
-        } else if (percent > 95) {
+        } else if (percent > 90) {
+          // %90 geçildiyse bitmiş say ama ilerleme çubuğu için süreyi koru
           ch.lastWatched = DateTime.now();
           ch.watchedSeconds = totalSeconds;
           ch.totalDurationSeconds = totalSeconds;
@@ -193,8 +195,9 @@ class ChannelService {
   }
 
   /// Returns items that are partially watched (between 3% and 90%)
+  /// UPDATED: Only one entry per Series (the latest one)
   Future<List<ChannelModel>> getContinueWatching(int playlistId, {int limit = 20}) async {
-    return _db.channelModels
+    final allRecent = await _db.channelModels
         .filter()
         .playlistIdEqualTo(playlistId)
         .lastWatchedIsNotNull()
@@ -203,11 +206,29 @@ class ChannelService {
         .and()
         .totalDurationSecondsGreaterThan(0)
         .sortByLastWatchedDesc()
-        .findAll()
-        .then((all) => all.where((ch) {
-              final percent = (ch.watchedSeconds / ch.totalDurationSeconds) * 100;
-              return percent >= 3 && percent <= 90;
-            }).take(limit).toList());
+        .findAll();
+
+    final results = <ChannelModel>[];
+    final seenSeries = <String>{};
+
+    for (final ch in allRecent) {
+      if (results.length >= limit) break;
+
+      // 1. %3 - %90 Filtresi
+      final percent = (ch.watchedSeconds / ch.totalDurationSeconds) * 100;
+      if (percent < 3 || percent > 90) continue;
+
+      // 2. Dizi Tekilleştirme (Sadece en son izlenen bölüm)
+      if (ch.contentType == 'series') {
+        final seriesKey = ch.seriesName?.trim().toLowerCase() ?? ch.name.trim().toLowerCase();
+        if (seenSeries.contains(seriesKey)) continue; // Daha yenisi zaten eklendi
+        seenSeries.add(seriesKey);
+      }
+
+      results.add(ch);
+    }
+
+    return results;
   }
 
   // ── Search ─────────────────────────────────────────────────────────────────

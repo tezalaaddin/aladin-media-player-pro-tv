@@ -96,6 +96,9 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
     private lateinit var volumeLayout: LinearLayout
     private lateinit var tvStatusOverlay: TextView
     private lateinit var tvVolumeLevel: TextView
+    private lateinit var pbLoading: android.widget.ProgressBar
+    private lateinit var quickListLayout: LinearLayout
+    private lateinit var lvQuickList: android.widget.ListView
 
     private lateinit var btnSubtitles: TextView
     private lateinit var btnAudio: TextView
@@ -143,6 +146,7 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
             val attemptMsg = t("attempt", "Deneme")
             val finalMsg = if (bufferingRetryCount > 0) "$baseMsg $attemptMsg $bufferingRetryCount" else baseMsg
             showStatus(finalMsg, true)
+            pbLoading.visibility = View.VISIBLE
         }
     }
 
@@ -153,9 +157,9 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
             prepareAndPlay()
         } else {
             isPersistentError = true
-            val errorDetailed = t("error_detailed", "Bu içerik şu an açılamıyor. Lütfen internet bağlantınızı veya sunucunuzdaki yayını kontrol edin.\n\nHata Veren Adres:")
-            val currentUrl = channelUrls?.getOrNull(currentIndex) ?: ""
-            showStatus("$errorDetailed\n\n$currentUrl\n\n${t("retry_ok", "Yeniden denemek için OK basın")}", true)
+            val errorDetailed = t("error_detailed", "Bu içerik şu an açılamıyor. Lütfen internet bağlantınızı veya sunucunuzdaki yayını kontrol edin.")
+            showStatus("$errorDetailed\n\n${t("retry_ok", "Yeniden denemek için OK basın")}", true)
+            pbLoading.visibility = View.GONE
             // Keep OSD visible
             mainHandler.removeCallbacks(hideRunnable)
             channelInfoLayout.visibility = View.VISIBLE
@@ -187,6 +191,8 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
         keyGuideLayout.visibility = View.GONE
         seekBar.visibility = View.GONE
         ivCenterPlayPause.visibility = View.GONE
+        pbLoading.visibility = View.GONE
+        quickListLayout.visibility = View.GONE
     }
 
     private val updateProgressAction = object : Runnable {
@@ -268,6 +274,9 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
         volumeLayout = findViewById(R.id.volume_layout)
         tvVolumeLevel = findViewById(R.id.tv_volume_level)
         tvStatusOverlay = findViewById(R.id.tv_status_overlay)
+        pbLoading = findViewById(R.id.pb_loading)
+        quickListLayout = findViewById(R.id.quick_list_layout)
+        lvQuickList = findViewById(R.id.lv_quick_list)
 
         tvPauseDescription = findViewById(R.id.tv_pause_description)
 
@@ -544,6 +553,7 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
                         mainHandler.removeCallbacks(bufferingTimeoutRunnable)
                         
                         tvStatusOverlay.visibility = View.GONE
+                        pbLoading.visibility = View.GONE
                         
                         player?.let { p ->
                             if (p.duration != C.TIME_UNSET) {
@@ -683,16 +693,16 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
             KeyEvent.KEYCODE_PROG_YELLOW, KeyEvent.KEYCODE_F3, KeyEvent.KEYCODE_3, KeyEvent.KEYCODE_NUMPAD_3 -> { cycleTracks(C.TRACK_TYPE_VIDEO); return true }
             KeyEvent.KEYCODE_PROG_BLUE, KeyEvent.KEYCODE_F4, KeyEvent.KEYCODE_4, KeyEvent.KEYCODE_NUMPAD_4 -> { cycleAspectRatio(); return true }
             KeyEvent.KEYCODE_5, KeyEvent.KEYCODE_NUMPAD_5 -> { showPlayerInfo(); return true }
-            KeyEvent.KEYCODE_6, KeyEvent.KEYCODE_NUMPAD_6 -> { showOSD(); return true }
+            KeyEvent.KEYCODE_6, KeyEvent.KEYCODE_NUMPAD_6 -> { showQuickList(); return true }
             KeyEvent.KEYCODE_7, KeyEvent.KEYCODE_NUMPAD_7 -> { 
                 player?.let { p -> if (p.duration != C.TIME_UNSET) accumulateSeek(-600000L) }
                 return true 
             }
-            KeyEvent.KEYCODE_8, KeyEvent.KEYCODE_NUMPAD_8 -> { 
+            KeyEvent.KEYCODE_9, KeyEvent.KEYCODE_NUMPAD_9 -> { 
                 player?.let { p -> if (p.duration != C.TIME_UNSET) accumulateSeek(600000L) }
                 return true 
             }
-            KeyEvent.KEYCODE_9, KeyEvent.KEYCODE_NUMPAD_9 -> { cycleSleepTimer(); return true }
+            KeyEvent.KEYCODE_8, KeyEvent.KEYCODE_NUMPAD_8 -> { cycleSleepTimer(); return true }
             KeyEvent.KEYCODE_0, KeyEvent.KEYCODE_NUMPAD_0 -> { toggleFavorite(); return true }
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
                 if (isPersistentError) {
@@ -878,10 +888,33 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
             val resolution = "${format.width}x${format.height}"
             val fps = if (format.frameRate > 0) "${format.frameRate.toInt()} FPS" else ""
             val codec = format.sampleMimeType?.substringAfterLast("/")?.uppercase() ?: ""
+            val url = channelUrls?.getOrNull(currentIndex) ?: ""
             
-            val info = "INFO: $resolution $fps | $codec"
+            val info = "INFO: $resolution $fps | $codec\nURL: $url"
             showStatus(info, false)
         }
+    }
+
+    private fun showQuickList() {
+        if (channelNames == null || channelUrls == null) return
+        
+        val adapter = android.widget.ArrayAdapter<String>(
+            this,
+            android.R.layout.simple_list_item_1,
+            channelNames!!
+        )
+        
+        lvQuickList.adapter = adapter
+        lvQuickList.setSelection(currentIndex)
+        lvQuickList.setOnItemClickListener { _, _, position, _ ->
+            currentIndex = position
+            quickListLayout.visibility = View.GONE
+            prepareAndPlay()
+        }
+        
+        quickListLayout.visibility = View.VISIBLE
+        lvQuickList.requestFocus()
+        resetHideTimer()
     }
 
     private fun cycleSleepTimer() {
@@ -904,7 +937,7 @@ class NativePlayerActivity : AppCompatActivity(), GestureDetector.OnGestureListe
         
         mainHandler.removeCallbacks(hideStatusOverlayRunnable)
         if (!persistent) {
-            mainHandler.postDelayed(hideStatusOverlayRunnable, 3000)
+            mainHandler.postDelayed(hideStatusOverlayRunnable, 5000)
         }
     }
 
