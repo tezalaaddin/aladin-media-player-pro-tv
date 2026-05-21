@@ -73,6 +73,46 @@ class _MoviesPageState extends State<MoviesPage> {
   void _play(ChannelModel ch, List<ChannelModel> list) => Navigator.push(
       context, MaterialPageRoute(builder: (_) => PlayerPage(channel: ch, playlist: list.isNotEmpty ? list : [ch])));
 
+  Future<void> _confirmRemoveCW(ChannelModel ch) async {
+    final s = context.read<AppState>().s;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.card,
+        title: Text(s.continueWatching, style: const TextStyle(color: Colors.white)),
+        content: Text(s.removeListQ(ch.name), style: const TextStyle(color: AppTheme.textSecondary)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.cancel)),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(s.delete, style: const TextStyle(color: Colors.redAccent))),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await ChannelService.instance.updateWatched(ch.id, 0); // Progress sıfırlayarak listeden çıkarır
+      if (_loadedId != null) _load(_loadedId!);
+    }
+  }
+
+  Future<void> _confirmRemoveFavorite(ChannelModel ch) async {
+    final s = context.read<AppState>().s;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.card,
+        title: Text(s.favorites, style: const TextStyle(color: Colors.white)),
+        content: Text(s.removeFavoriteQ(ch.name), style: const TextStyle(color: AppTheme.textSecondary)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.cancel)),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(s.delete, style: const TextStyle(color: Colors.redAccent))),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await ChannelService.instance.toggleFavorite(ch.id);
+      if (_loadedId != null) _load(_loadedId!);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<AppState>(builder: (_, state, __) {
@@ -136,15 +176,17 @@ class _MoviesPageState extends State<MoviesPage> {
                                 delegate: SliverChildListDelegate([
                                   if (_continueWatching.isNotEmpty)
                                     _MovieFavStrip(
-                                      title: '⏳ ${state.s.continueWatching}',
+                                      title: state.s.continueWatch,
                                       channels: _continueWatching,
                                       onTap: (ch) => _play(ch, _continueWatching),
+                                      onLongPress: (ch) => _confirmRemoveCW(ch),
                                     ),
                                   if (_favorites.isNotEmpty)
                                     _MovieFavStrip(
-                                      title: '⭐ ${state.s.favorites}',
+                                      title: state.s.favorites,
                                       channels: _favorites,
                                       onTap: (ch) => _play(ch, _favorites),
+                                      onLongPress: (ch) => _confirmRemoveFavorite(ch),
                                     ),
                                 ]),
                               ),
@@ -177,11 +219,13 @@ class _MovieFavStrip extends StatelessWidget {
   final String title;
   final List<ChannelModel> channels;
   final void Function(ChannelModel) onTap;
+  final void Function(ChannelModel)? onLongPress;
 
   const _MovieFavStrip({
     required this.title,
     required this.channels,
     required this.onTap,
+    this.onLongPress,
   });
 
   @override
@@ -203,6 +247,7 @@ class _MovieFavStrip extends StatelessWidget {
               itemBuilder: (_, i) => ChannelCard(
                 channel: channels[i],
                 onTap: () => onTap(channels[i]),
+                onLongPress: onLongPress != null ? () => onLongPress!(channels[i]) : null,
               ),
             ),
           ),

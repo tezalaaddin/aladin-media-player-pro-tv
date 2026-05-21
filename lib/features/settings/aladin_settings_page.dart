@@ -1,16 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/models/aladin_playlist_model.dart';
 import '../../../core/services/aladin_playlist_service.dart';
+import '../../../core/services/aladin_update_service.dart';
 import '../../core/services/aladin_epg_engine.dart';
 import '../../../core/state/aladin_app_prefs.dart';
 import '../../../core/state/aladin_app_state.dart';
 import '../../../core/state/aladin_app_strings.dart';
 import '../../../shared/theme/aladin_app_theme.dart';
+import '../../../shared/widgets/aladin_input_dialog.dart';
 import '../../../shared/widgets/aladin_folder_explorer.dart';
+
+class SettingsThemeTokens {
+  static const double radius = 12.0;
+  static const double spacing = 20.0;
+  static const Duration animDuration = Duration(milliseconds: 140);
+  
+  static List<BoxShadow> focusShadow(Color color) => [
+    BoxShadow(
+      color: color.withOpacity(0.15),
+      blurRadius: 12,
+      spreadRadius: 1,
+    ),
+  ];
+
+  static BoxDecoration cardDecoration({bool focused = false, bool active = false}) {
+    return BoxDecoration(
+      color: focused ? Colors.white : (active ? AppTheme.accent.withOpacity(0.08) : AppTheme.card),
+      borderRadius: BorderRadius.circular(radius),
+      border: Border.all(
+        color: focused ? Colors.white : (active ? AppTheme.accent : Colors.transparent),
+        width: 1.5,
+      ),
+      boxShadow: focused ? focusShadow(AppTheme.accent) : null,
+    );
+  }
+}
+
+enum ImportType { m3u, xtream, local }
 
 class SettingsPage extends StatefulWidget {
   final VoidCallback? onPlaylistSelected;
@@ -20,44 +50,107 @@ class SettingsPage extends StatefulWidget {
   State<SettingsPage> createState() => _SettingsPageState();
 }
 
-class _SettingsPageState extends State<SettingsPage>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabs;
-
-  final _m3uUrl = TextEditingController();
-  final _m3uName = TextEditingController();
-  final _xtSrv = TextEditingController();
-  final _xtUser = TextEditingController();
-  final _xtPass = TextEditingController();
-  final _xtName = TextEditingController();
-  final _locName = TextEditingController();
-  String? _localPath;
+class _SettingsPageState extends State<SettingsPage> {
   PackageInfo? _packageInfo;
-
-  // Focus Nodes
-  final _fnM3uUrl = FocusNode(debugLabel: 'settings_m3u_url_field');
-  final _fnM3uName = FocusNode(debugLabel: 'settings_m3u_name_field');
-  final _fnM3uBtn = FocusNode(debugLabel: 'settings_m3u_btn');
-
-  final _fnXtSrv = FocusNode(debugLabel: 'settings_xt_srv_field');
-  final _fnXtUser = FocusNode(debugLabel: 'settings_xt_user_field');
-  final _fnXtPass = FocusNode(debugLabel: 'settings_xt_pass_field');
-  final _fnXtName = FocusNode(debugLabel: 'settings_xt_name_field');
-  final _fnXtBtn = FocusNode(debugLabel: 'settings_xt_btn');
-
-  final _fnLocName = FocusNode(debugLabel: 'settings_loc_name_field');
-  final _fnLocBtn = FocusNode(debugLabel: 'settings_loc_btn');
-  final _fnEpgBtn = FocusNode(debugLabel: 'settings_epg_btn');
-
   bool _importing = false;
   bool _epgSyncing = false;
   String _status = '';
 
+  // Focus Management
+  late final FocusNode _pageFocusNode = FocusNode(debugLabel: 'settings_page');
+  late final List<FocusNode> _leftNodes = List.generate(5, (i) => FocusNode(debugLabel: 'left_$i'));
+  final List<FocusNode> _playlistNodes = [];
+  
+  final ScrollController _leftScroll = ScrollController();
+  final ScrollController _rightScroll = ScrollController();
+
+  bool _inLeftPanel = true;
+  int _leftFocusedIndex = 0;
+  int _rightFocusedIndex = 0;
+
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 3, vsync: this);
     _initPackageInfo();
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && widget.isActive) {
+        _leftNodes[0].requestFocus();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _pageFocusNode.dispose();
+    for (var node in _leftNodes) {
+      node.dispose();
+    }
+    for (var node in _playlistNodes) {
+      node.dispose();
+    }
+    _leftScroll.dispose();
+    _rightScroll.dispose();
+    super.dispose();
+  }
+
+  void _updatePlaylistNodes(int count) {
+    if (_playlistNodes.length == count) return;
+    
+    if (_playlistNodes.length < count) {
+      for (int i = _playlistNodes.length; i < count; i++) {
+        _playlistNodes.add(FocusNode(debugLabel: 'playlist_$i'));
+      }
+    } else {
+      while (_playlistNodes.length > count) {
+        _playlistNodes.removeLast().dispose();
+      }
+    }
+  }
+
+  KeyEventResult _handleGlobalKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    final key = event.logicalKey;
+    final state = context.read<AppState>();
+
+    // Back / Escape handling
+    if (key == LogicalKeyboardKey.escape || key == LogicalKeyboardKey.backspace || key == LogicalKeyboardKey.goBack) {
+      if (!_inLeftPanel) {
+        setState(() => _inLeftPanel = true);
+        _leftNodes[_leftFocusedIndex].requestFocus();
+        return KeyEventResult.handled;
+      }
+      // If in left panel, let it propagate to MainPage for tab switching or app exit
+      return KeyEventResult.ignored;
+    }
+
+    if (key == LogicalKeyboardKey.arrowRight && _inLeftPanel) {
+      if (state.playlists.isNotEmpty) {
+        setState(() => _inLeftPanel = false);
+        _playlistNodes[_rightFocusedIndex.clamp(0, state.playlists.length - 1)].requestFocus();
+        return KeyEventResult.handled;
+      }
+    }
+    
+    if (key == LogicalKeyboardKey.arrowLeft && !_inLeftPanel) {
+      setState(() => _inLeftPanel = true);
+      _leftNodes[_leftFocusedIndex].requestFocus();
+      return KeyEventResult.handled;
+    }
+
+    return KeyEventResult.ignored;
+  }
+
+  void _ensureVisible(FocusNode node) {
+    if (node.context != null) {
+      Scrollable.ensureVisible(
+        node.context!,
+        duration: const Duration(milliseconds: 250),
+        alignment: 0.5,
+        curve: Curves.easeInOut,
+      );
+    }
   }
 
   Future<void> _initPackageInfo() async {
@@ -65,18 +158,11 @@ class _SettingsPageState extends State<SettingsPage>
     if (mounted) setState(() => _packageInfo = info);
   }
 
-  @override
-  void dispose() {
-    _tabs.dispose();
-    final ctrls = [_m3uUrl, _m3uName, _xtSrv, _xtUser, _xtPass, _xtName, _locName];
-    for (final c in ctrls) {
-      c.dispose();
-    }
-    final nodes = [_fnM3uUrl, _fnM3uName, _fnM3uBtn, _fnXtSrv, _fnXtUser, _fnXtPass, _fnXtName, _fnXtBtn, _fnLocName, _fnLocBtn, _fnEpgBtn];
-    for (final n in nodes) {
-      n.dispose();
-    }
-    super.dispose();
+  String _toggleProtocol(String url) {
+    url = url.trim();
+    if (url.startsWith('https://')) return url.replaceFirst('https://', 'http://');
+    if (url.startsWith('http://')) return url.replaceFirst('http://', 'https://');
+    return 'http://$url';
   }
 
   void _snack(String msg, {bool error = false}) {
@@ -100,170 +186,455 @@ class _SettingsPageState extends State<SettingsPage>
     };
   }
 
-  Future<void> _importM3U() async {
+  Future<void> _openM3UForm() async {
     final state = context.read<AppState>();
     final s = state.s;
-    String url = _m3uUrl.text.trim();
-    final name = _m3uName.text.trim();
 
-    if (url.isEmpty) {
-      _snack(s.enterM3uUrl, error: true);
-      return;
-    }
-
-    url = url.replaceAll(RegExp(r'[\u200b-\u200d\ufeff]'), '').trim();
-
-    final existing = await PlaylistService.instance.findByUrl(url);
-    if (existing != null && mounted) {
-      final ok = await _confirmUpdate(existing.name, s);
-      if (!ok) return;
-    }
-    setState(() {
-      _importing = true;
-      _status = s.connecting;
-    });
-    try {
-      final importedPlaylist = await PlaylistService.instance.importM3U(
-          url: url,
-          name: name.isEmpty ? 'Playlist' : name,
-          onProgress: (p, c) {
-            if (mounted) setState(() => _status = _pt(p, c));
-          });
-      
-      _m3uUrl.clear();
-      _m3uName.clear();
-      await state.refresh();
-      
-      if (mounted) {
-        _showActivationDialog(importedPlaylist, s, state);
-      }
-    } catch (e) {
-      _showErrorDialog(e.toString(), s);
-    } finally {
-      if (mounted) setState(() => _importing = false);
-    }
-  }
-
-  Future<void> _importXtream() async {
-    final state = context.read<AppState>();
-    final s = state.s;
-    final srv = _xtSrv.text.trim();
-    final usr = _xtUser.text.trim();
-    final pas = _xtPass.text.trim();
-    final nm = _xtName.text.trim();
-
-    if (srv.isEmpty || usr.isEmpty || pas.isEmpty) {
-      _snack(s.fillAllFields, error: true);
-      return;
-    }
-    setState(() {
-      _importing = true;
-      _status = s.validating;
-    });
-    try {
-      final importedPlaylist = await PlaylistService.instance.importXtream(
-          server: srv,
-          username: usr,
-          password: pas,
-          name: nm.isEmpty ? usr : nm,
-          onProgress: (p, c) {
-            if (mounted) setState(() => _status = _pt(p, c));
-          });
-      
-      _xtSrv.clear();
-      _xtUser.clear();
-      _xtPass.clear();
-      _xtName.clear();
-      await state.refresh();
-      
-      if (mounted) {
-        _showActivationDialog(importedPlaylist, s, state);
-      }
-    } catch (e) {
-      _showErrorDialog(e.toString(), s);
-    } finally {
-      if (mounted) setState(() => _importing = false);
-    }
-  }
-
-  Future<void> _pickFile() async {
-    final path = await Navigator.push<String>(
-      context,
-      MaterialPageRoute(builder: (_) => const AladinFolderExplorer()),
+    final result = await showDialog<List<String>>(
+      context: context,
+      builder: (_) => AladinFormDialog(
+        title: s.addM3uTitle,
+        fields: [
+          AladinField(label: s.m3uUrl, hint: 'http://...', icon: Icons.link),
+          AladinField(label: s.playlistName, hint: s.playlistName, icon: Icons.edit_note),
+        ],
+      ),
     );
 
-    if (path != null && mounted) {
-      setState(() {
-        _localPath = path;
-        if (_locName.text.isEmpty) {
-          _locName.text = path.split('/').last.replaceAll(RegExp(r'\.\w+$'), '');
+    if (result != null && result[0].isNotEmpty) {
+      String url = result[0].replaceAll(RegExp(r'[\u200b-\u200d\ufeff]'), '').trim();
+      final name = result[1].isEmpty ? s.tabM3U : result[1];
+      
+      setState(() { _importing = true; _status = s.connecting; });
+      try {
+        PlaylistModel? p;
+        try {
+          p = await PlaylistService.instance.importM3U(
+              url: url,
+              name: name,
+              onProgress: (p, c) { if (mounted) setState(() => _status = _pt(p, c)); });
+        } catch (e) {
+          final altUrl = _toggleProtocol(url);
+          if (altUrl != url) {
+            url = altUrl;
+            if (mounted) setState(() => _status = s.altProtocolTry);
+            p = await PlaylistService.instance.importM3U(
+                url: url,
+                name: name,
+                onProgress: (p, c) { if (mounted) setState(() => _status = _pt(p, c)); });
+          } else {
+            rethrow;
+          }
         }
-      });
+        await state.refresh();
+        if (mounted && p != null) _showActivationDialog(p, s, state);
+      } catch (e) {
+        _showErrorDialog(e.toString(), s);
+      } finally {
+        if (mounted) setState(() => _importing = false);
+      }
     }
   }
 
-  Future<void> _importLocal() async {
+  Future<void> _openXtreamForm() async {
     final state = context.read<AppState>();
     final s = state.s;
 
-    if (_localPath == null) {
-      _snack(s.selectAFile, error: true);
-      return;
-    }
-    setState(() {
-      _importing = true;
-      _status = s.reading;
-    });
-    try {
-      final importedPlaylist = await PlaylistService.instance.importM3U(
-          url: _localPath!,
-          name: _locName.text.isEmpty ? s.local : _locName.text,
-          isLocalFile: true,
-          onProgress: (p, c) {
-            if (mounted) setState(() => _status = _pt(p, c));
-          });
-      _locName.clear();
-      setState(() => _localPath = null);
-      await state.refresh();
-      
-      if (mounted) {
-        _showActivationDialog(importedPlaylist, s, state);
+    final result = await showDialog<List<String>>(
+      context: context,
+      builder: (_) => AladinFormDialog(
+        title: s.addXtreamTitle,
+        fields: [
+          AladinField(label: s.server, hint: 'http://...', icon: Icons.dns),
+          AladinField(label: s.username, icon: Icons.person),
+          AladinField(label: s.password, obscure: true, icon: Icons.lock),
+          AladinField(label: s.playlistName, hint: s.username, icon: Icons.badge),
+        ],
+      ),
+    );
+
+    if (result != null && result[0].isNotEmpty && result[1].isNotEmpty && result[2].isNotEmpty) {
+      String server = result[0].trim();
+      setState(() { _importing = true; _status = s.validating; });
+      try {
+        PlaylistModel? p;
+        try {
+          p = await PlaylistService.instance.importXtream(
+              server: server,
+              username: result[1],
+              password: result[2],
+              name: result[3].isEmpty ? result[1] : result[3],
+              onProgress: (p, c) { if (mounted) setState(() => _status = _pt(p, c)); });
+        } catch (e) {
+          final altServer = _toggleProtocol(server);
+          if (altServer != server) {
+            server = altServer;
+            if (mounted) setState(() => _status = s.altProtocolTry);
+            p = await PlaylistService.instance.importXtream(
+                server: server,
+                username: result[1],
+                password: result[2],
+                name: result[3].isEmpty ? result[1] : result[3],
+                onProgress: (p, c) { if (mounted) setState(() => _status = _pt(p, c)); });
+          } else {
+            rethrow;
+          }
+        }
+        await state.refresh();
+        if (mounted && p != null) _showActivationDialog(p, s, state);
+      } catch (e) {
+        _showErrorDialog(e.toString(), s);
+      } finally {
+        if (mounted) setState(() => _importing = false);
       }
-    } catch (e) {
-      _showErrorDialog(e.toString(), s);
-    } finally {
-      if (mounted) setState(() => _importing = false);
     }
   }
 
-  void _showErrorDialog(String error, AppStrings s) {
-    String message = s.errorUrlMsg;
-    if (error.contains('HandshakeException') || error.contains('WRONG_VERSION_NUMBER')) {
-      message = "Bağlantı Kurulamadı! Sunucu güvenli bağlantıyı (HTTPS) desteklemiyor olabilir.\n\nLütfen adresin başındaki 'https://' kısmını 'http://' yaparak tekrar deneyin.";
-    } else if (error.contains('SocketException')) {
-      message = "İnternet Bağlantı Hatası!\n\nLütfen cihazınızın internete bağlı olduğundan emin olun.";
+  Future<void> _openLocalForm() async {
+    final state = context.read<AppState>();
+    final s = state.s;
+
+    final path = await showDialog<String>(
+      context: context,
+      builder: (_) => const AladinFolderExplorer(),
+    );
+
+    if (path != null) {
+      final nameResult = await showDialog<String>(
+        context: context,
+        builder: (_) => AladinInputDialog(title: s.playlistName, hint: s.local),
+      );
+
+      setState(() { _importing = true; _status = s.reading; });
+      try {
+        final p = await PlaylistService.instance.importM3U(
+            url: path,
+            name: nameResult ?? s.local,
+            isLocalFile: true,
+            onProgress: (p, c) { if (mounted) setState(() => _status = _pt(p, c)); });
+        await state.refresh();
+        if (mounted) _showActivationDialog(p, s, state);
+      } catch (e) {
+        _showErrorDialog(e.toString(), s);
+      } finally {
+        if (mounted) setState(() => _importing = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<AppState>();
+    final s = state.s;
+    final size = MediaQuery.of(context).size;
+    final isTV = size.width > size.height && size.width > 900;
+
+    _updatePlaylistNodes(state.playlists.length);
+
+    Widget content;
+    if (isTV) {
+      content = Row(
+        children: [
+          Expanded(
+            flex: 3,
+            child: FocusTraversalGroup(
+              policy: OrderedTraversalPolicy(),
+              child: CustomScrollView(
+                controller: _leftScroll,
+              slivers: [
+                  _buildHeader(s),
+                  _buildSectionHeader(s.newPlaylistAdd),
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        _SetupTile(
+                          focusNode: _leftNodes[0],
+                          icon: Icons.auto_fix_high,
+                          title: s.setupWizard,
+                          subtitle: s.setupWizardSub,
+                          onTap: _startImportWizard,
+                          onFocus: (v) { if(v) setState(() { _inLeftPanel = true; _leftFocusedIndex = 0; }); _ensureVisible(_leftNodes[0]); },
+                        ),
+                        _SetupTile(
+                          focusNode: _leftNodes[1],
+                          icon: Icons.sync,
+                          title: s.epgUpdate,
+                          subtitle: AladinEpgEngine.instance.daysSinceSync >= 999 ? s.epgNeverSynced : s.epgLastSync(AladinEpgEngine.instance.daysSinceSync),
+                          onTap: _epgSyncing ? null : _forceEpgSync,
+                          loading: _epgSyncing,
+                          onFocus: (v) { if(v) setState(() { _inLeftPanel = true; _leftFocusedIndex = 1; }); _ensureVisible(_leftNodes[1]); },
+                        ),
+                      ]),
+                    ),
+                  ),
+                  _buildSectionHeader(s.navSettings),
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        _SetupTile(
+                          focusNode: _leftNodes[2],
+                          icon: Icons.language,
+                          title: s.langTitle,
+                          subtitle: (AppStrings.getLanguageNames()[state.lang] ?? '').split(' ').skip(1).join(' '),
+                          onTap: () => _showLanguageDialog(state, s),
+                          onFocus: (v) { if(v) setState(() { _inLeftPanel = true; _leftFocusedIndex = 2; }); _ensureVisible(_leftNodes[2]); },
+                        ),
+                        _SetupTile(
+                          focusNode: _leftNodes[3],
+                          icon: Icons.settings_input_component,
+                          title: s.decoderMode,
+                          subtitle: _getDecoderName(s),
+                          onTap: () => _showDecoderDialog(s),
+                          onFocus: (v) { if(v) setState(() { _inLeftPanel = true; _leftFocusedIndex = 3; }); _ensureVisible(_leftNodes[3]); },
+                        ),
+                        _SetupTile(
+                          focusNode: _leftNodes[4],
+                          icon: Icons.info_outline,
+                          title: s.about,
+                          subtitle: '${s.version} ${_packageInfo?.version ?? '...'} (${_packageInfo?.buildNumber ?? ''})',
+                          onTap: () => _showAboutDialog(s),
+                          onFocus: (v) { if(v) setState(() { _inLeftPanel = true; _leftFocusedIndex = 4; }); _ensureVisible(_leftNodes[4]); },
+                        ),
+                      ]),
+                    ),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                ],
+              ),
+            ),
+          ),
+          const VerticalDivider(width: 1, color: Colors.white10),
+          Expanded(
+            flex: 2,
+            child: FocusTraversalGroup(
+              policy: OrderedTraversalPolicy(),
+              child: Container(
+                color: AppTheme.surface.withOpacity(0.5),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildRightPanelHeader(s, state),
+                    Expanded(child: _playlistList(state, s)),
+                    if (_status.isNotEmpty) _statusRow(),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    } else {
+      // Mobile Layout (Single Column / Responsive Mode Split)
+      content = CustomScrollView(
+        slivers: [
+          _buildHeader(s),
+          _buildSectionHeader(s.savedPlaylists.toUpperCase()),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (_, i) => _PTile(
+                  p: state.playlists[i],
+                  active: state.active?.id == state.playlists[i].id,
+                  onSelect: () => _showPlaylistMenu(state.playlists[i], s, state),
+                  onMenu: () => _showPlaylistMenu(state.playlists[i], s, state),
+                ),
+                childCount: state.playlists.length,
+              ),
+            ),
+          ),
+          _buildSectionHeader(s.actions),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                _SetupTile(
+                  icon: Icons.auto_fix_high,
+                  title: s.setupWizard,
+                  subtitle: s.newPlaylistAdd,
+                  onTap: _startImportWizard,
+                ),
+                _SetupTile(
+                  icon: Icons.sync,
+                  title: s.epgUpdate,
+                  subtitle: AladinEpgEngine.instance.daysSinceSync >= 999 ? s.epgNeverSynced : s.epgLastSync(AladinEpgEngine.instance.daysSinceSync),
+                  onTap: _epgSyncing ? null : _forceEpgSync,
+                  loading: _epgSyncing,
+                ),
+                _SetupTile(
+                  icon: Icons.language,
+                  title: s.langTitle,
+                  subtitle: (AppStrings.getLanguageNames()[state.lang] ?? '').split(' ').skip(1).join(' '),
+                  onTap: () => _showLanguageDialog(state, s),
+                ),
+                _SetupTile(
+                  icon: Icons.settings_input_component,
+                  title: s.decoderMode,
+                  subtitle: _getDecoderName(s),
+                  onTap: () => _showDecoderDialog(s),
+                ),
+                _SetupTile(
+                  icon: Icons.info_outline,
+                  title: s.about,
+                  subtitle: '${s.version} ${_packageInfo?.version ?? '...'}',
+                  onTap: () => _showAboutDialog(s),
+                ),
+              ]),
+            ),
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 80)),
+        ],
+      );
     }
 
+    return Focus(
+      focusNode: _pageFocusNode,
+      onKeyEvent: _handleGlobalKey,
+      child: Scaffold(
+        backgroundColor: AppTheme.background,
+        body: Stack(
+          children: [
+            _buildCinematicBackground(),
+            content,
+            if (_importing) ...[
+              const ModalBarrier(dismissible: false, color: Colors.black54),
+              _buildImportOverlay(s),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRightPanelHeader(AppStrings s, AppState state) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 48, 24, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(s.savedPlaylists.toUpperCase(), style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.5)),
+          const SizedBox(height: 8),
+          Text(s.listSavedCount(state.playlists.length), style: const TextStyle(color: AppTheme.textMuted, fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCinematicBackground() {
+    return Positioned.fill(
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment.topLeft,
+            radius: 1.5,
+            colors: [
+              AppTheme.accent.withOpacity(0.08),
+              Colors.transparent,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImportOverlay(AppStrings s) {
+    return IgnorePointer(
+      ignoring: false,
+      child: Focus(
+        autofocus: true,
+        child: Container(
+          color: Colors.black.withOpacity(0.85),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(color: AppTheme.accent, strokeWidth: 3),
+                const SizedBox(height: 32),
+                Text(s.updating, style: AppTheme.headingLarge),
+                const SizedBox(height: 12),
+                Text(_status, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 16)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _startImportWizard() async {
+    final s = context.read<AppState>().s;
+    final prevFocus = FocusManager.instance.primaryFocus;
+
+    final type = await showDialog<ImportType>(
+      context: context,
+      builder: (context) => _ImportTypeSelectorDialog(s: s),
+    );
+    
+    prevFocus?.requestFocus();
+    if (type == null) return;
+    
+    switch (type) {
+      case ImportType.m3u: await _openM3UForm(); break;
+      case ImportType.xtream: await _openXtreamForm(); break;
+      case ImportType.local: await _openLocalForm(); break;
+    }
+  }
+
+  Widget _buildHeader(AppStrings s) => SliverToBoxAdapter(
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(32, 48, 32, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.settings, color: AppTheme.accent, size: 20),
+              const SizedBox(width: 12),
+              Text(s.navSettings.toUpperCase(), style: const TextStyle(color: AppTheme.accent, fontWeight: FontWeight.w900, letterSpacing: 2)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(s.appAndListMgmt, style: AppTheme.headingLarge),
+          const SizedBox(height: 8),
+          Container(width: 60, height: 4, decoration: BoxDecoration(color: AppTheme.accent, borderRadius: BorderRadius.circular(2))),
+        ],
+      ),
+    ),
+  );
+
+  Widget _buildSectionHeader(String title) => SliverToBoxAdapter(
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(32, 32, 32, 12),
+      child: Row(
+        children: [
+          Container(width: 4, height: 16, decoration: BoxDecoration(color: AppTheme.accent, borderRadius: BorderRadius.circular(2))),
+          const SizedBox(width: 12),
+          Text(title, style: TextStyle(color: Colors.white.withOpacity(0.5), fontWeight: FontWeight.w800, fontSize: 14, letterSpacing: 1.2)),
+        ],
+      ),
+    ),
+  );
+
+  Widget _statusRow() => Container(
+    padding: const EdgeInsets.all(16),
+    color: AppTheme.accent.withOpacity(0.1),
+    child: Row(children: [
+      if (_importing) const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accent)),
+      const SizedBox(width: 12),
+      Expanded(child: Text(_status, style: const TextStyle(color: AppTheme.accent, fontWeight: FontWeight.bold, fontSize: 13))),
+    ]),
+  );
+
+  void _showErrorDialog(String error, AppStrings s) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppTheme.card,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.redAccent),
-            const SizedBox(width: 10),
-            Text(s.errorUrlTitle, style: const TextStyle(color: Colors.white)),
-          ],
-        ),
-        content: Text(message, style: const TextStyle(color: AppTheme.textSecondary)),
-        actions: [
-          _TVDialogButton(
-            label: 'Tamam',
-            isPrimary: true,
-            onPressed: () => Navigator.pop(context),
-          ),
-        ],
+        title: Text(s.errorUrlTitle),
+        content: Text(error.contains('Handshake') ? s.httpsError : s.errorUrlMsg),
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(s.done))],
       ),
     );
   }
@@ -274,27 +645,17 @@ class _SettingsPageState extends State<SettingsPage>
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         backgroundColor: AppTheme.card,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            const Icon(Icons.check_circle_outline, color: AppTheme.accent),
-            const SizedBox(width: 10),
-            Text(s.playlistLoadedTitle, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Text(s.playlistLoadedMsg, style: const TextStyle(color: AppTheme.textSecondary)),
+        title: Text(s.playlistLoadedTitle),
+        content: Text(s.playlistLoadedMsg),
         actions: [
-          _TVDialogButton(label: s.cancel, isPrimary: false, onPressed: () => Navigator.pop(context)),
-          _TVDialogButton(
-            label: s.activateNow,
-            isPrimary: true,
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(s.cancel)),
+          ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               state.selectPlaylist(p);
-              Future.delayed(const Duration(milliseconds: 300), () {
-                widget.onPlaylistSelected?.call();
-              });
+              widget.onPlaylistSelected?.call();
             },
+            child: Text(s.activateNow),
           ),
         ],
       ),
@@ -302,310 +663,174 @@ class _SettingsPageState extends State<SettingsPage>
   }
 
   Future<void> _forceEpgSync() async {
-    setState(() {
-      _epgSyncing = true;
-      _status = 'EPG senkronizasyonu başlatılıyor...';
-    });
-    
-    _snack('EPG senkronizasyonu arka planda başlatıldı.');
+    final s = context.read<AppState>().s;
+    setState(() => _epgSyncing = true);
+    try { await AladinEpgEngine.instance.forceSync(); }
+    finally { if (mounted) { setState(() => _epgSyncing = false); _snack(s.epgUpdated); } }
+  }
 
+  String _getDecoderName(AppStrings s) {
+    final mode = AladinPrefs.instance.getString('decoderMode') ?? 'auto';
+    return switch (mode) {
+      'hw' => s.hwDecoder,
+      'sw' => s.swDecoder,
+      _ => s.autoDecoder,
+    };
+  }
+
+  void _showDecoderDialog(AppStrings s) {
+    final prevFocus = FocusManager.instance.primaryFocus;
+    showDialog(
+      context: context,
+      builder: (context) => SimpleDialog(
+        backgroundColor: AppTheme.card,
+        title: Text(s.decoderMode),
+        children: [
+          _buildDecoderOption('auto', s.autoDecoder, s),
+          _buildDecoderOption('hw', s.hwDecoder, s),
+          _buildDecoderOption('sw', s.swDecoder, s),
+        ],
+      ),
+    ).then((_) => prevFocus?.requestFocus());
+  }
+
+  Widget _buildDecoderOption(String value, String label, AppStrings s) {
+    final current = AladinPrefs.instance.getString('decoderMode') ?? 'auto';
+    return SimpleDialogOption(
+      onPressed: () async {
+        await AladinPrefs.instance.setString('decoderMode', value);
+        if (mounted) setState(() {});
+        Navigator.pop(context);
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Text(
+          label,
+          style: TextStyle(color: current == value ? AppTheme.accent : Colors.white),
+        ),
+      ),
+    );
+  }
+
+  void _showLanguageDialog(AppState state, AppStrings s) {
+    final langs = AppStrings.getLanguageNames();
+    final prevFocus = FocusManager.instance.primaryFocus;
+    showDialog(context: context, builder: (context) => SimpleDialog(
+      backgroundColor: AppTheme.card,
+      title: Text(s.langTitle),
+      children: langs.entries.map((e) => SimpleDialogOption(
+        onPressed: () { state.setLang(e.key); Navigator.pop(context); },
+        child: Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Text(e.value, style: TextStyle(color: state.lang == e.key ? AppTheme.accent : Colors.white))),
+      )).toList(),
+    )).then((_) => prevFocus?.requestFocus());
+  }
+
+  void _showPlaylistMenu(PlaylistModel p, AppStrings s, AppState state) {
+    final prevFocus = FocusManager.instance.primaryFocus;
+    showDialog(
+      context: context,
+      builder: (context) => SimpleDialog(
+        backgroundColor: AppTheme.card,
+        title: Text(p.name, style: const TextStyle(color: AppTheme.accent, fontWeight: FontWeight.bold)),
+        children: [
+          SimpleDialogOption(
+            onPressed: () {
+              Navigator.pop(context);
+              state.selectPlaylist(p);
+              widget.onPlaylistSelected?.call();
+            },
+            child: Row(children: [const Icon(Icons.play_circle_outline, color: Colors.greenAccent), const SizedBox(width: 12), Text(s.activateNow)]),
+          ),
+          SimpleDialogOption(
+            onPressed: () { Navigator.pop(context); _refreshPlaylist(p, state, s); },
+            child: Row(children: [const Icon(Icons.sync, color: Colors.white70), const SizedBox(width: 12), Text(s.update)]),
+          ),
+          SimpleDialogOption(
+            onPressed: () { Navigator.pop(context); _renamePlaylist(p, state, s); },
+            child: Row(children: [const Icon(Icons.edit, color: Colors.white70), const SizedBox(width: 12), Text(s.playlistRename)]),
+          ),
+          SimpleDialogOption(
+            onPressed: () { Navigator.pop(context); _deletePlaylist(p, state, s); },
+            child: Row(children: [const Icon(Icons.delete_outline, color: Colors.redAccent), const SizedBox(width: 12), Text(s.delete, style: const TextStyle(color: Colors.redAccent))]),
+          ),
+        ],
+      ),
+    ).then((_) => prevFocus?.requestFocus());
+  }
+
+  Future<void> _refreshPlaylist(PlaylistModel p, AppState state, AppStrings s) async {
+    setState(() { _importing = true; _status = '${p.name} ${s.updating}...'; });
     try {
-      await AladinEpgEngine.instance.forceSync();
-    } catch (e) {
-      debugPrint('EPG Sync Error: $e');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _epgSyncing = false;
-          _status = '';
+      try {
+        await PlaylistService.instance.refreshPlaylist(p.id, onProgress: (pr, c) {
+          if (mounted) setState(() => _status = _pt(pr, c));
         });
-        final s = context.read<AppState>().s;
-        _snack('${s.epgUpdated} (${AladinEpgEngine.instance.syncStatus})');
+      } catch (e) {
+        String? altUrl;
+        if (p.type == 'xtream') {
+          altUrl = _toggleProtocol(p.xtreamServer ?? '');
+        } else if (p.type == 'm3u') {
+          altUrl = _toggleProtocol(p.url);
+        }
+
+        if (altUrl != null && altUrl != (p.type == 'xtream' ? p.xtreamServer : p.url)) {
+          if (mounted) setState(() => _status = s.altProtocolTry);
+          if (p.type == 'xtream') {
+            await PlaylistService.instance.importXtream(
+                server: altUrl,
+                username: p.xtreamUsername!,
+                password: p.xtreamPassword!,
+                name: p.name,
+                onProgress: (pr, c) { if (mounted) setState(() => _status = _pt(pr, c)); });
+          } else {
+            await PlaylistService.instance.importM3U(
+                url: altUrl,
+                name: p.name,
+                onProgress: (pr, c) { if (mounted) setState(() => _status = _pt(pr, c)); });
+          }
+        } else {
+          rethrow;
+        }
       }
-    }
-  }
-
-  Future<bool> _confirmUpdate(String name, AppStrings s) async =>
-      await showDialog<bool>(
-          context: context,
-          builder: (_) => AlertDialog(
-                  backgroundColor: AppTheme.card,
-                  title: Text(s.playlistExists, style: const TextStyle(color: AppTheme.textPrimary)),
-                  content: Text('"$name" ${s.playlistExistsQ}', style: const TextStyle(color: AppTheme.textSecondary)),
-                  actions: [
-                    _TVDialogButton(label: s.cancel, isPrimary: false, onPressed: () => Navigator.pop(context, false)),
-                    _TVDialogButton(label: s.update, isPrimary: true, onPressed: () => Navigator.pop(context, true)),
-                  ])) ?? false;
-
-  Future<void> _delete(PlaylistModel p) async {
-    final state = context.read<AppState>();
-    final s = state.s;
-    final ok = await showDialog<bool>(
-            context: context,
-            builder: (_) => AlertDialog(
-                    backgroundColor: AppTheme.card,
-                    title: Text(s.delete, style: const TextStyle(color: AppTheme.textPrimary)),
-                    content: Text('"${p.name}" ${s.playlistDeleteQ}', style: const TextStyle(color: AppTheme.textSecondary)),
-                    actions: [
-                      _TVDialogButton(label: s.cancel, isPrimary: false, onPressed: () => Navigator.pop(context, false)),
-                      _TVDialogButton(label: s.delete, isPrimary: true, isDanger: true, onPressed: () => Navigator.pop(context, true)),
-                    ])) ?? false;
-    if (ok) {
-      await PlaylistService.instance.delete(p.id);
-      await context.read<AppState>().refresh();
-    }
-  }
-
-  Future<void> _rename(PlaylistModel p) async {
-    final state = context.read<AppState>();
-    final s = state.s;
-    final ctrl = TextEditingController(text: p.name);
-    final ok = await showDialog<bool>(
-            context: context,
-            builder: (_) => AlertDialog(
-                    backgroundColor: AppTheme.card,
-                    title: Text(s.playlistRename, style: const TextStyle(color: AppTheme.textPrimary)),
-                    content: TextField(
-                        controller: ctrl,
-                        autofocus: true,
-                        style: const TextStyle(color: AppTheme.textPrimary),
-                        decoration: InputDecoration(labelText: s.newName)),
-                    actions: [
-                      _TVDialogButton(label: s.cancel, isPrimary: false, onPressed: () => Navigator.pop(context, false)),
-                      _TVDialogButton(label: s.save, isPrimary: true, onPressed: () => Navigator.pop(context, true)),
-                    ])) ?? false;
-    if (ok && ctrl.text.trim().isNotEmpty) {
-      await PlaylistService.instance.rename(p.id, ctrl.text.trim());
-      await context.read<AppState>().refresh();
-    }
-  }
-
-  Future<void> _update(PlaylistModel p) async {
-    final state = context.read<AppState>();
-    final s = state.s;
-    setState(() {
-      _importing = true;
-      _status = '${p.name} ${s.updating}...';
-    });
-    try {
-      if (p.type == 'xtream') {
-        await PlaylistService.instance.importXtream(
-            server: p.xtreamServer!,
-            username: p.xtreamUsername!,
-            password: p.xtreamPassword!,
-            name: p.name,
-            onProgress: (_, c) {
-              if (mounted) setState(() => _status = _pt(_, c));
-            });
-      } else {
-        await PlaylistService.instance.importM3U(
-            url: p.url,
-            name: p.name,
-            isLocalFile: p.type == 'local',
-            onProgress: (_, c) {
-              if (mounted) setState(() => _status = _pt(_, c));
-            });
-      }
-      await context.read<AppState>().refresh();
-      _snack('✅ ${p.name} ${s.updated}');
+      await state.refresh();
+      _snack(s.updated);
     } catch (e) {
-      _snack('❌ $e', error: true);
+      _showErrorDialog(e.toString(), s);
     } finally {
       if (mounted) setState(() => _importing = false);
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final state = context.watch<AppState>();
-    final s = state.s;
-    final landscape = MediaQuery.of(context).orientation == Orientation.landscape;
-    
-    return Scaffold(
-      backgroundColor: AppTheme.background,
-      body: FocusScope(
-        child: landscape ? _landscape(state, s) : _portrait(state, s),
-      ),
+  Future<void> _renamePlaylist(PlaylistModel p, AppState state, AppStrings s) async {
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (_) => AladinInputDialog(title: s.playlistRename, initialValue: p.name, hint: s.newName),
     );
+    if (newName != null && newName.isNotEmpty) {
+      await PlaylistService.instance.rename(p.id, newName);
+      await state.refresh();
+      _snack(s.updated);
+    }
   }
 
-  Widget _landscape(AppState state, AppStrings s) => Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-              flex: 3,
-              child: Column(children: [
-                _tabBar(s),
-                Expanded(
-                  child: TabBarView(controller: _tabs, children: [
-                    _m3uForm(state, s),
-                    _xtForm(state, s),
-                    _locForm(state, s)
-                  ]),
-                ),
-                if (_status.isNotEmpty) _statusRow(),
-                const SizedBox(height: 10),
-              ])),
-          const VerticalDivider(width: 1, color: AppTheme.divider),
-          Expanded(
-              flex: 2,
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-                child: Text(s.savedPlaylists, style: AppTheme.headingMedium, maxLines: 1, overflow: TextOverflow.ellipsis)),
-            Expanded(child: _playlistList(state, s)),
-          ])),
-        ],
-      );
-
-  Widget _portrait(AppState state, AppStrings s) => Column(children: [
-        _tabBar(s),
-        Expanded(
-          flex: 0,
-          child: SizedBox(
-            height: 350,
-            child: TabBarView(controller: _tabs, children: [
-              _m3uForm(state, s),
-              _xtForm(state, s),
-              _locForm(state, s)
-            ]),
-          ),
-        ),
-        if (_status.isNotEmpty) _statusRow(),
-        const Divider(height: 20),
-        Padding(
-            padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
-            child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(s.savedPlaylists, style: AppTheme.headingMedium))),
-        Expanded(child: _playlistList(state, s)),
-      ]);
-
-  Widget _tabBar(AppStrings s) => Container(
-        margin: const EdgeInsets.fromLTRB(14, 20, 14, 10),
-        decoration: BoxDecoration(color: AppTheme.card, borderRadius: BorderRadius.circular(12)),
-        child: TabBar(
-            controller: _tabs,
-            labelColor: Colors.white,
-            unselectedLabelColor: AppTheme.textMuted,
-            indicator: BoxDecoration(color: AppTheme.accent, borderRadius: BorderRadius.circular(10)),
-            indicatorPadding: const EdgeInsets.all(4),
-            dividerColor: Colors.transparent,
-            tabs: [
-              Tab(text: s.tabM3U),
-              Tab(text: s.tabXtream),
-              Tab(text: s.tabLocal),
-            ]),
-      );
-
-  Widget _statusRow() => Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      child: Row(children: [
-        if (_importing) const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accent)),
-        if (_importing) const SizedBox(width: 10),
-        Expanded(child: Text(_status, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13))),
-      ]));
-
-  Widget _langRow(AppState state, AppStrings s) {
-    final langs = AppStrings.getLanguageNames();
-    return Padding(
-        padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
-        child: _TVFocusWrapper(
-          onTap: () => _showLanguageDialog(state, s, langs),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(color: AppTheme.card, borderRadius: BorderRadius.circular(8)),
-            child: Row(children: [
-              const Icon(Icons.language, size: 16, color: AppTheme.textMuted),
-              const SizedBox(width: 10),
-              Expanded(child: Text(s.langTitle, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13))),
-              Text(
-                // Bayraksız sadece isim kısmını gösterelim temiz olsun
-                (langs[state.lang] ?? state.lang).split(' ').skip(1).join(' '),
-                style: const TextStyle(color: AppTheme.accent, fontWeight: FontWeight.bold, fontSize: 13),
-              ),
-              const SizedBox(width: 10),
-              const Icon(Icons.edit, size: 14, color: AppTheme.accent),
-            ]),
-          ),
-        ));
-  }
-
-  void _showLanguageDialog(AppState state, AppStrings s, Map<String, String> langs) {
-    showDialog(
+  Future<void> _deletePlaylist(PlaylistModel p, AppState state, AppStrings s) async {
+    final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppTheme.card,
-        title: Text(s.langTitle, style: const TextStyle(color: Colors.white)),
-        content: SizedBox(
-          width: 300,
-          child: ListView(
-            shrinkWrap: true,
-            children: langs.entries.map((e) => _TVFocusWrapper(
-              onTap: () {
-                state.setLang(e.key);
-                Navigator.pop(context);
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
-                  children: [
-                    Text(e.value, style: const TextStyle(color: Colors.white)),
-                    const Spacer(),
-                    if (state.lang == e.key) const Icon(Icons.check, color: AppTheme.accent),
-                  ],
-                ),
-              ),
-            )).toList(),
-          ),
-        ),
+        title: Text(s.delete),
+        content: Text('${p.name} ${s.playlistDeleteQ}'),
         actions: [
-          _TVDialogButton(label: s.close, isPrimary: true, onPressed: () => Navigator.pop(context)),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(s.cancel)),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: Text(s.delete, style: const TextStyle(color: Colors.red))),
         ],
       ),
     );
-  }
-
-  Widget _epgRow(AppState state, AppStrings s) {
-    final days = AladinEpgEngine.instance.daysSinceSync;
-    final label = days >= 999 ? s.epgNeverSynced : s.epgLastSync(days);
-    return Padding(
-        padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(color: AppTheme.card, borderRadius: BorderRadius.circular(8)),
-          child: Row(children: [
-            const Icon(Icons.calendar_today, size: 16, color: AppTheme.textMuted),
-            const SizedBox(width: 10),
-            Expanded(child: Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13))),
-            _TVButton(
-              focusNode: _fnEpgBtn,
-              onPressed: _epgSyncing ? null : _forceEpgSync,
-              icon: _epgSyncing ? null : Icons.sync,
-              label: _epgSyncing ? s.epgSyncing : s.epgUpdate,
-              isLoading: _epgSyncing,
-              small: true,
-            ),
-          ]),
-        ));
-  }
-
-  Widget _aboutRow(AppState state, AppStrings s) {
-    return Padding(
-        padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
-        child: _TVFocusWrapper(
-          onTap: () => _showAboutDialog(s),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(color: AppTheme.card, borderRadius: BorderRadius.circular(8)),
-            child: Row(children: [
-              const Icon(Icons.info_outline, size: 16, color: AppTheme.textMuted),
-              const SizedBox(width: 10),
-              Expanded(child: Text(s.about, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13))),
-              const Icon(Icons.chevron_right, size: 14, color: AppTheme.accent),
-            ]),
-          ),
-        ));
+    if (confirm == true) {
+      await PlaylistService.instance.delete(p.id);
+      await state.refresh();
+      _snack(s.playlistDeleted);
+    }
   }
 
   void _showAboutDialog(AppStrings s) {
@@ -613,448 +838,168 @@ class _SettingsPageState extends State<SettingsPage>
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppTheme.card,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(s.about, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text(s.about),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Aladin Media Player Pro', style: TextStyle(color: AppTheme.accent, fontWeight: FontWeight.bold, fontSize: 18)),
-            const SizedBox(height: 8),
-            Text(
-              'Version ${_packageInfo?.version ?? '...'} (Build ${_packageInfo?.buildNumber ?? '...'})',
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
-            ),
+            Text(s.settingsTitle, style: const TextStyle(color: AppTheme.accent, fontWeight: FontWeight.w900, fontSize: 20)),
+            const SizedBox(height: 4),
+            Text('${s.version} ${_packageInfo?.version} (${_packageInfo?.buildNumber})', style: const TextStyle(color: Colors.white70, fontSize: 13)),
             const SizedBox(height: 16),
-            Text(s.developer, style: const TextStyle(color: Colors.white, fontSize: 14)),
+            Text(s.developer, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 20),
+            _buildLink(Icons.code, s.github, 'https://github.com/tezalaaddin'),
             const SizedBox(height: 8),
-            _TVFocusWrapper(
-              onTap: () => url_launcher.launchUrl(Uri.parse('https://github.com/tezalaaddin')),
-              child: const Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Text('https://github.com/tezalaaddin', style: TextStyle(color: Colors.blue, decoration: TextDecoration.underline, fontSize: 13)),
+            _buildLink(Icons.shop, s.playStore, 'https://play.google.com/store/apps/details?id=com.aladin.iptv.player.pro'),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _handleUpdateCheck(s),
+                icon: const Icon(Icons.system_update),
+                label: Text(s.checkUpdates),
               ),
             ),
           ],
         ),
-        actions: [
-          _TVDialogButton(label: s.close, isPrimary: true, onPressed: () => Navigator.pop(context)),
-        ],
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(s.close))],
+      ),
+    );
+  }
+
+  Future<void> _handleUpdateCheck(AppStrings s) async {
+    Navigator.pop(context);
+    _snack(s.checkingUpdates);
+    
+    final update = await UpdateService.instance.checkUpdate();
+    
+    if (update != null && update['hasUpdate'] == true) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: AppTheme.card,
+          title: Text(s.checkUpdates),
+          content: Text('${s.version} ${update['version']} ${s.loaded}. ${s.playlistLoadedMsg}'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: Text(s.cancel)),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                launchUrl(Uri.parse(update['url']), mode: LaunchMode.externalApplication);
+              },
+              child: Text(s.download),
+            ),
+          ],
+        ),
+      );
+    } else {
+      _snack(s.upToDate);
+    }
+  }
+
+  Widget _buildLink(IconData icon, String label, String url) {
+    return InkWell(
+      onTap: () => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: AppTheme.accent),
+            const SizedBox(width: 8),
+            Text(label, style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline, fontSize: 14)),
+          ],
+        ),
       ),
     );
   }
 
   Widget _playlistList(AppState state, AppStrings s) {
-    if (state.playlists.isEmpty) {
-      return Center(child: Text(s.noPlaylistsAdded, style: const TextStyle(color: AppTheme.textMuted)));
-    }
+    if (state.playlists.isEmpty) return Center(child: Text(s.noPlaylistsAdded, style: const TextStyle(color: AppTheme.textMuted)));
     return ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        itemCount: state.playlists.length,
-        itemBuilder: (_, i) {
-          final p = state.playlists[i];
-          return _PTile(
-            p: p,
-            active: state.active?.id == p.id,
-            onSelect: () {
-              state.selectPlaylist(p);
-              _snack('✅ "${p.name}" ${s.playlistSelected}');
-              Future.delayed(const Duration(milliseconds: 600), () => widget.onPlaylistSelected?.call());
-            },
-            onUpdate: () => _update(p),
-            onRename: () => _rename(p),
-            onDelete: () => _delete(p),
-          );
-        });
-  }
-
-  Widget _m3uForm(AppState state, AppStrings s) => SingleChildScrollView(
-    padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-    child: Column(children: [
-      _TVTextField(
-        controller: _m3uUrl,
-        focusNode: _fnM3uUrl,
-        autofocus: true,
-        label: 'M3U URL',
-        hint: 'http://...',
-        action: TextInputAction.next,
-        onSubmitted: (_) => FocusScope.of(context).requestFocus(_fnM3uName),
-      ),
-      const SizedBox(height: 12),
-      _TVTextField(
-        controller: _m3uName,
-        focusNode: _fnM3uName,
-        label: s.playlistName,
-        action: TextInputAction.next,
-        onSubmitted: (_) => FocusScope.of(context).requestFocus(_fnM3uBtn),
-      ),
-      const SizedBox(height: 20),
-      _TVButton(
-        focusNode: _fnM3uBtn,
-        onPressed: _importing ? null : _importM3U,
-        icon: Icons.download,
-        label: s.load,
-        isLoading: _importing,
-      ),
-      const SizedBox(height: 24),
-      const Divider(color: AppTheme.divider),
-      const SizedBox(height: 12),
-      _langRow(state, s),
-      _epgRow(state, s),
-      _aboutRow(state, s),
-    ]),
-  );
-
-  Widget _xtForm(AppState state, AppStrings s) => SingleChildScrollView(
-    padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-    child: Column(children: [
-      _TVTextField(
-        controller: _xtSrv,
-        focusNode: _fnXtSrv,
-        label: s.server,
-        hint: 'http://...',
-        action: TextInputAction.next,
-        onSubmitted: (_) => FocusScope.of(context).requestFocus(_fnXtUser),
-      ),
-      const SizedBox(height: 10),
-      _TVTextField(
-        controller: _xtUser,
-        focusNode: _fnXtUser,
-        label: s.username,
-        action: TextInputAction.next,
-        onSubmitted: (_) => FocusScope.of(context).requestFocus(_fnXtPass),
-      ),
-      const SizedBox(height: 10),
-      _TVTextField(
-        controller: _xtPass,
-        focusNode: _fnXtPass,
-        label: s.password,
-        obscure: true,
-        action: TextInputAction.next,
-        onSubmitted: (_) => FocusScope.of(context).requestFocus(_fnXtName),
-      ),
-      const SizedBox(height: 10),
-      _TVTextField(
-        controller: _xtName,
-        focusNode: _fnXtName,
-        label: s.playlistName,
-        action: TextInputAction.next,
-        onSubmitted: (_) => FocusScope.of(context).requestFocus(_fnXtBtn),
-      ),
-      const SizedBox(height: 20),
-      _TVButton(
-        focusNode: _fnXtBtn,
-        onPressed: _importing ? null : _importXtream,
-        icon: Icons.cloud_download,
-        label: s.connect,
-        isLoading: _importing,
-      ),
-      const SizedBox(height: 24),
-      const Divider(color: AppTheme.divider),
-      const SizedBox(height: 12),
-      _langRow(state, s),
-      _epgRow(state, s),
-      _aboutRow(state, s),
-    ]),
-  );
-
-  Widget _locForm(AppState state, AppStrings s) => SingleChildScrollView(
-    padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-    child: Column(children: [
-      _TVFocusWrapper(
-        onTap: _pickFile,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(color: AppTheme.card, borderRadius: BorderRadius.circular(10)),
-          child: Row(children: [
-            const Icon(Icons.folder_open, color: AppTheme.accent),
-            const SizedBox(width: 12),
-            Expanded(child: Text(_localPath ?? s.selectM3UFile, style: TextStyle(color: _localPath != null ? Colors.white : AppTheme.textMuted, fontSize: 14), overflow: TextOverflow.ellipsis)),
-          ]),
-        ),
-      ),
-      const SizedBox(height: 12),
-      _TVTextField(
-        controller: _locName,
-        focusNode: _fnLocName,
-        label: s.playlistName,
-        action: TextInputAction.next,
-        onSubmitted: (_) => FocusScope.of(context).requestFocus(_fnLocBtn),
-      ),
-      const SizedBox(height: 20),
-      _TVButton(
-        focusNode: _fnLocBtn,
-        onPressed: _importing ? null : _importLocal,
-        icon: Icons.upload_file,
-        label: s.import,
-        isLoading: _importing,
-      ),
-      const SizedBox(height: 24),
-      const Divider(color: AppTheme.divider),
-      const SizedBox(height: 12),
-      _langRow(state, s),
-      _epgRow(state, s),
-      _aboutRow(state, s),
-    ]),
-  );
-}
-
-class _TVTextField extends StatefulWidget {
-  final TextEditingController controller;
-  final FocusNode? focusNode;
-  final String label;
-  final String? hint;
-  final bool obscure;
-  final bool autofocus;
-  final TextInputAction action;
-  final ValueChanged<String>? onSubmitted;
-
-  const _TVTextField({
-    required this.controller,
-    this.focusNode,
-    required this.label,
-    this.hint,
-    this.obscure = false,
-    this.autofocus = false,
-    required this.action,
-    this.onSubmitted,
-  });
-
-  @override
-  State<_TVTextField> createState() => _TVTextFieldState();
-}
-
-class _TVTextFieldState extends State<_TVTextField> {
-  late FocusNode _navNode; 
-  late FocusNode _textNode; 
-  bool _isEditing = false;
-  bool _isFocused = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _navNode = FocusNode(debugLabel: 'tv_textfield_nav');
-    _textNode = widget.focusNode ?? FocusNode(debugLabel: 'tv_textfield_input', skipTraversal: true);
-    
-    _navNode.addListener(() { if(mounted) setState(() => _isFocused = _navNode.hasFocus); });
-    
-    _textNode.onKeyEvent = (node, event) {
-      if (event is! KeyDownEvent) return KeyEventResult.ignored;
-      final key = event.logicalKey;
-
-      // 1. GERİ TUŞU: Kutucuktan çık ama sayfayı kapatma
-      if (key == LogicalKeyboardKey.escape || key.keyId == 0x100000004) {
-        _navNode.requestFocus();
-        SystemChannels.textInput.invokeMethod('TextInput.hide');
-        return KeyEventResult.handled; 
-      }
-
-      // 2. ENTER ENGELLEME: Sadece sanal klavyedeki butona izin ver
-      if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.select) {
-        return KeyEventResult.handled; 
-      }
-      return KeyEventResult.ignored;
-    };
-  }
-
-  @override
-  void dispose() {
-    _navNode.dispose();
-    if (widget.focusNode == null) _textNode.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Focus(
-      focusNode: _navNode,
-      autofocus: widget.autofocus,
-      onKeyEvent: (node, event) {
-        if (_isEditing) return KeyEventResult.ignored;
-        if (event is KeyDownEvent) {
-          if (event.logicalKey == LogicalKeyboardKey.select || event.logicalKey == LogicalKeyboardKey.enter) {
-            setState(() => _isEditing = true);
-            _textNode.requestFocus();
-            return KeyEventResult.handled;
+      controller: _rightScroll,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      itemCount: state.playlists.length,
+      itemBuilder: (_, i) => _PTile(
+        focusNode: _playlistNodes[i],
+        p: state.playlists[i],
+        active: state.active?.id == state.playlists[i].id,
+        onSelect: () => _showPlaylistMenu(state.playlists[i], s, state),
+        onMenu: () => _showPlaylistMenu(state.playlists[i], s, state),
+        onFocus: (v) {
+          if (v) {
+            setState(() {
+              _inLeftPanel = false;
+              _rightFocusedIndex = i;
+            });
+            _ensureVisible(_playlistNodes[i]);
           }
-        }
-        return KeyEventResult.ignored;
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: (_isFocused || _isEditing) ? AppTheme.accent : Colors.transparent, width: 3),
-        ),
-        child: TextField(
-          controller: widget.controller,
-          focusNode: _textNode,
-          obscureText: widget.obscure,
-          textInputAction: widget.action,
-          style: const TextStyle(color: Colors.white),
-          onSubmitted: (val) {
-            _navNode.requestFocus();
-            widget.onSubmitted?.call(val);
-          },
-          decoration: InputDecoration(
-            labelText: widget.label,
-            hintText: widget.hint,
-            filled: true,
-            fillColor: AppTheme.card,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-          ),
-        ),
+        },
       ),
     );
   }
 }
 
-// ── TV UI Components ─────────────────────────────────────────────────────────
-
-class _TVDialogButton extends StatefulWidget {
-  final String label;
-  final VoidCallback onPressed;
-  final bool isPrimary;
-  final bool isDanger;
-
-  const _TVDialogButton({
-    required this.label,
-    required this.onPressed,
-    this.isPrimary = false,
-    this.isDanger = false,
-  });
-
-  @override
-  State<_TVDialogButton> createState() => _TVDialogButtonState();
-}
-
-class _TVDialogButtonState extends State<_TVDialogButton> {
-  bool _focused = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Focus(
-      autofocus: widget.isPrimary,
-      onFocusChange: (v) => setState(() => _focused = v),
-      onKeyEvent: (node, event) {
-        if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.select || event.logicalKey == LogicalKeyboardKey.enter)) {
-          widget.onPressed();
-          return KeyEventResult.handled;
-        }
-        return KeyEventResult.ignored;
-      },
-      child: GestureDetector(
-        onTap: widget.onPressed,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          decoration: BoxDecoration(
-            color: _focused ? (widget.isDanger ? Colors.redAccent : AppTheme.accent) : (widget.isPrimary ? AppTheme.card : Colors.transparent),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: _focused ? Colors.white : (widget.isPrimary ? AppTheme.accent : Colors.transparent), width: 2),
-          ),
-          child: Text(widget.label, style: TextStyle(color: _focused ? Colors.white : (widget.isDanger ? Colors.redAccent : (widget.isPrimary ? AppTheme.accent : AppTheme.textMuted)), fontWeight: FontWeight.bold, fontSize: 14)),
-        ),
-      ),
-    );
-  }
-}
-
-class _TVFocusWrapper extends StatefulWidget {
-  final Widget child;
+class _SetupTile extends StatefulWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
   final VoidCallback? onTap;
-  const _TVFocusWrapper({required this.child, this.onTap});
-
-  @override
-  State<_TVFocusWrapper> createState() => _TVFocusWrapperState();
-}
-
-class _TVFocusWrapperState extends State<_TVFocusWrapper> {
-  bool _isFocused = false;
-  @override
-  Widget build(BuildContext context) {
-    return Focus(
-      onFocusChange: (v) => setState(() => _isFocused = v),
-      onKeyEvent: (node, event) {
-        if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.select || event.logicalKey == LogicalKeyboardKey.enter)) {
-          widget.onTap?.call();
-          return KeyEventResult.handled;
-        }
-        return KeyEventResult.ignored;
-      },
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: _isFocused ? AppTheme.accent : Colors.transparent, width: 3),
-          ),
-          child: widget.child,
-        ),
-      ),
-    );
-  }
-}
-
-class _TVButton extends StatefulWidget {
-  final VoidCallback? onPressed;
+  final bool loading;
   final FocusNode? focusNode;
-  final IconData? icon;
-  final String label;
-  final bool isLoading;
-  final bool small;
-
-  const _TVButton({
-    required this.onPressed,
-    this.focusNode,
-    this.icon,
-    required this.label,
-    this.isLoading = false,
-    this.small = false,
-  });
+  final ValueChanged<bool>? onFocus;
+  const _SetupTile({required this.icon, required this.title, required this.subtitle, this.onTap, this.loading = false, this.focusNode, this.onFocus});
 
   @override
-  State<_TVButton> createState() => _TVButtonState();
+  State<_SetupTile> createState() => _SetupTileState();
 }
 
-class _TVButtonState extends State<_TVButton> {
-  bool _isFocused = false;
+class _SetupTileState extends State<_SetupTile> {
+  bool _focused = false;
   @override
   Widget build(BuildContext context) {
-    return Focus(
-      focusNode: widget.focusNode,
-      onFocusChange: (v) => setState(() => _isFocused = v),
-      onKeyEvent: (node, event) {
-        if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.select || event.logicalKey == LogicalKeyboardKey.enter)) {
-          widget.onPressed?.call();
-          return KeyEventResult.handled;
-        }
-        return KeyEventResult.ignored;
-      },
-      child: GestureDetector(
-        onTap: widget.onPressed,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: EdgeInsets.symmetric(horizontal: widget.small ? 16 : 24, vertical: widget.small ? 8 : 14),
-          decoration: BoxDecoration(
-            color: _isFocused ? AppTheme.accent : AppTheme.card,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: _isFocused ? Colors.white : Colors.transparent, width: 2),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (widget.isLoading)
-                const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-              else if (widget.icon != null)
-                Icon(widget.icon, size: widget.small ? 16 : 20, color: Colors.white),
-              if (widget.icon != null || widget.isLoading) const SizedBox(width: 10),
-              Text(widget.label, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: widget.small ? 13 : 15)),
-            ],
+    final s = context.read<AppState>().s;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Focus(
+        focusNode: widget.focusNode,
+        onFocusChange: (v) {
+          setState(() => _focused = v);
+          widget.onFocus?.call(v);
+        },
+        onKeyEvent: (node, event) {
+          if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.select || event.logicalKey == LogicalKeyboardKey.enter)) {
+            widget.onTap?.call(); return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+        },
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: SettingsThemeTokens.animDuration,
+            padding: const EdgeInsets.all(20),
+            transform: Matrix4.identity()..scale(_focused ? 1.02 : 1.0),
+            decoration: SettingsThemeTokens.cardDecoration(focused: _focused),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: _focused ? AppTheme.accent : Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(12)),
+                  child: Icon(widget.icon, color: _focused ? Colors.white : AppTheme.accent),
+                ),
+                const SizedBox(width: 20),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(widget.title, style: TextStyle(color: _focused ? Colors.black : Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                  const SizedBox(height: 4),
+                  Text(widget.subtitle, style: TextStyle(color: _focused ? Colors.black54 : AppTheme.textMuted, fontSize: 14)),
+                ])),
+                if (widget.loading) const CircularProgressIndicator(strokeWidth: 2)
+                else Icon(Icons.chevron_right, color: _focused ? Colors.black26 : Colors.white12),
+              ],
+            ),
           ),
         ),
       ),
@@ -1065,145 +1010,199 @@ class _TVButtonState extends State<_TVButton> {
 class _PTile extends StatefulWidget {
   final PlaylistModel p;
   final bool active;
-  final VoidCallback onSelect, onUpdate, onRename, onDelete;
-  const _PTile({required this.p, required this.active, required this.onSelect, required this.onUpdate, required this.onRename, required this.onDelete});
+  final VoidCallback onSelect;
+  final VoidCallback onMenu;
+  final FocusNode? focusNode;
+  final ValueChanged<bool>? onFocus;
+  const _PTile({required this.p, required this.active, required this.onSelect, required this.onMenu, this.focusNode, this.onFocus});
 
   @override
   State<_PTile> createState() => _PTileState();
 }
 
 class _PTileState extends State<_PTile> {
-  bool _isFocused = false;
-
+  bool _focused = false;
   @override
   Widget build(BuildContext context) {
-    final state = context.watch<AppState>();
-    final s = state.s;
-
+    final s = context.read<AppState>().s;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Focus(
-        onFocusChange: (v) => setState(() => _isFocused = v),
+        focusNode: widget.focusNode,
+        onFocusChange: (v) {
+          setState(() => _focused = v);
+          widget.onFocus?.call(v);
+        },
         onKeyEvent: (node, event) {
           if (event is KeyDownEvent) {
             if (event.logicalKey == LogicalKeyboardKey.select || event.logicalKey == LogicalKeyboardKey.enter) {
-              widget.p.totalCount > 0 ? widget.onSelect() : _promptImport(context, s, state);
-              return KeyEventResult.handled;
+              widget.onSelect(); return KeyEventResult.handled;
+            }
+            if (event.logicalKey == LogicalKeyboardKey.contextMenu) {
+              widget.onMenu(); return KeyEventResult.handled;
             }
           }
           return KeyEventResult.ignored;
         },
         child: GestureDetector(
-          onTap: () => widget.p.totalCount > 0 ? widget.onSelect() : _promptImport(context, s, state),
+          onTap: widget.onSelect,
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            decoration: BoxDecoration(
-              color: AppTheme.card,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: _isFocused ? AppTheme.accent : (widget.active ? AppTheme.accent.withValues(alpha:0.5) : Colors.transparent), width: 3),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 18,
-                        backgroundColor: widget.active ? AppTheme.accent : AppTheme.surface,
-                        child: Icon(_icon(), color: Colors.white, size: 18),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(widget.p.name, 
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 2),
-                            widget.p.totalCount > 0
-                                ? Text('${widget.p.totalCount} ${s.channelsShort}  📺 ${widget.p.tvCount}  🎬 ${widget.p.movieCount}', 
-                                    style: AppTheme.caption,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  )
-                                : Text(s.demoDownloadHint, 
-                                    style: AppTheme.caption.copyWith(color: AppTheme.accent, fontSize: 11),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Divider(height: 1, color: AppTheme.divider),
-                  ),
-                  Row(
-                    children: [
-                      Expanded(child: _TileBtn(icon: Icons.refresh, label: s.update, color: AppTheme.textMuted, onTap: widget.onUpdate)),
-                      Expanded(child: _TileBtn(icon: Icons.edit, label: s.playlistRename, color: AppTheme.textMuted, onTap: widget.onRename)),
-                      Expanded(child: _TileBtn(icon: Icons.delete, label: s.delete, color: Colors.redAccent.withValues(alpha: 0.8), onTap: widget.onDelete)),
-                    ],
-                  ),
-                ],
+            duration: SettingsThemeTokens.animDuration,
+            padding: const EdgeInsets.all(16),
+            transform: Matrix4.identity()..scale(_focused ? 1.02 : 1.0),
+            decoration: SettingsThemeTokens.cardDecoration(focused: _focused, active: widget.active),
+            child: Row(children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: widget.p.type == 'xtream' ? Colors.blue.withOpacity(0.1) : Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  widget.p.type == 'xtream' ? Icons.cloud : Icons.link,
+                  size: 20,
+                  color: widget.p.type == 'xtream' ? Colors.blue : Colors.green,
+                ),
               ),
-            ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(child: Text(widget.p.name, style: TextStyle(color: _focused ? Colors.black : Colors.white, fontWeight: widget.active ? FontWeight.bold : FontWeight.normal), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                        if (widget.active) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(color: AppTheme.accent, borderRadius: BorderRadius.circular(4)),
+                            child: Text(context.read<AppState>().s.active, style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      s.playlistStats(tv: widget.p.tvCount, movie: widget.p.movieCount, series: widget.p.seriesCount),
+                      style: TextStyle(color: _focused ? Colors.black54 : AppTheme.textMuted, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: _focused ? Colors.black26 : Colors.white12),
+            ]),
           ),
         ),
       ),
     );
   }
-
-  void _promptImport(BuildContext ctx, AppStrings s, AppState state) =>
-      showDialog(
-          context: ctx,
-          builder: (_) => AlertDialog(
-                  backgroundColor: AppTheme.card,
-                  title: Text(widget.p.name, style: const TextStyle(color: Colors.white)),
-                  content: Text(s.demoDownloadPrompt, style: const TextStyle(color: AppTheme.textSecondary)),
-                  actions: [
-                    _TVDialogButton(label: s.cancel, isPrimary: false, onPressed: () => Navigator.pop(ctx)),
-                    _TVDialogButton(label: s.download, isPrimary: true, onPressed: () { Navigator.pop(ctx); widget.onUpdate(); }),
-                  ]));
-
-  IconData _icon() => widget.p.type == 'xtream' ? Icons.cloud : widget.p.type == 'local' ? Icons.folder : Icons.link;
 }
 
-class _TileBtn extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-  const _TileBtn({required this.icon, required this.label, required this.color, required this.onTap});
+class _ImportTypeSelectorDialog extends StatefulWidget {
+  final AppStrings s;
+  const _ImportTypeSelectorDialog({required this.s});
+
+  @override
+  State<_ImportTypeSelectorDialog> createState() => _ImportTypeSelectorDialogState();
+}
+
+class _ImportTypeSelectorDialogState extends State<_ImportTypeSelectorDialog> {
+  final List<FocusNode> _nodes = List.generate(3, (i) => FocusNode());
+
+  @override
+  void dispose() {
+    for (var n in _nodes) {
+      n.dispose();
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+    return AlertDialog(
+      backgroundColor: AppTheme.card,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      title: Text(widget.s.selectSource, style: AppTheme.headingMedium),
+      content: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 14, color: color),
-            const SizedBox(width: 4),
-            Flexible(
-              child: Text(
-                label, 
-                style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w500),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+            _TypeCard(
+              focusNode: _nodes[0],
+              icon: Icons.link,
+              title: widget.s.tabM3U,
+              subtitle: widget.s.m3uSub,
+              onTap: () => Navigator.pop(context, ImportType.m3u),
+            ),
+            const SizedBox(width: 16),
+            _TypeCard(
+              focusNode: _nodes[1],
+              icon: Icons.cloud_queue,
+              title: widget.s.tabXtream,
+              subtitle: widget.s.xtreamSub,
+              onTap: () => Navigator.pop(context, ImportType.xtream),
+            ),
+            const SizedBox(width: 16),
+            _TypeCard(
+              focusNode: _nodes[2],
+              icon: Icons.folder_open,
+              title: widget.s.tabLocal,
+              subtitle: widget.s.localSub,
+              onTap: () => Navigator.pop(context, ImportType.local),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TypeCard extends StatefulWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  final FocusNode? focusNode;
+
+  const _TypeCard({required this.icon, required this.title, required this.subtitle, required this.onTap, this.focusNode});
+
+  @override
+  State<_TypeCard> createState() => _TypeCardState();
+}
+
+class _TypeCardState extends State<_TypeCard> {
+  bool _focused = false;
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+      focusNode: widget.focusNode,
+      onFocusChange: (v) => setState(() => _focused = v),
+      onKeyEvent: (node, event) {
+        if (event is KeyDownEvent && (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.select)) {
+          widget.onTap(); return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: SettingsThemeTokens.animDuration,
+          width: 180,
+          padding: const EdgeInsets.all(24),
+          transform: Matrix4.identity()..scale(_focused ? 1.02 : 1.0),
+          decoration: SettingsThemeTokens.cardDecoration(focused: _focused),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(widget.icon, size: 56, color: _focused ? AppTheme.accent : Colors.white54),
+              const SizedBox(height: 20),
+              Text(widget.title, style: TextStyle(color: _focused ? Colors.black : Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 8),
+              Text(widget.subtitle, style: TextStyle(color: _focused ? Colors.black54 : AppTheme.textMuted, fontSize: 12), textAlign: TextAlign.center),
+            ],
+          ),
         ),
       ),
     );

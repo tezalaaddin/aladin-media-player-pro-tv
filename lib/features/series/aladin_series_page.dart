@@ -376,6 +376,46 @@ class _SeriesPageState extends State<SeriesPage> {
     });
   }
 
+  Future<void> _confirmRemoveCW(ChannelModel ch) async {
+    final s = context.read<AppState>().s;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.card,
+        title: Text(s.continueWatching, style: const TextStyle(color: Colors.white)),
+        content: Text(s.removeListQ(ch.seriesName ?? ch.name), style: const TextStyle(color: AppTheme.textSecondary)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.cancel)),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(s.delete, style: const TextStyle(color: Colors.redAccent))),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await ChannelService.instance.updateWatched(ch.id, 0); // Progress sıfırlayarak listeden çıkarır
+      if (_loadedId != null) _load(_loadedId!);
+    }
+  }
+
+  Future<void> _confirmRemoveFavorite(ChannelModel ch) async {
+    final s = context.read<AppState>().s;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.card,
+        title: Text(s.favorites, style: const TextStyle(color: Colors.white)),
+        content: Text(s.removeFavoriteQ(ch.seriesName ?? ch.name), style: const TextStyle(color: AppTheme.textSecondary)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.cancel)),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(s.delete, style: const TextStyle(color: Colors.redAccent))),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await ChannelService.instance.toggleFavorite(ch.id);
+      if (_loadedId != null) _load(_loadedId!);
+    }
+  }
+
   void _onSeriesTap(ChannelModel ch, int playlistId) {
     final name =
         ch.seriesName?.trim().isNotEmpty == true ? ch.seriesName! : ch.name;
@@ -455,17 +495,19 @@ class _SeriesPageState extends State<SeriesPage> {
                                 delegate: SliverChildListDelegate([
                                   if (_continueWatching.isNotEmpty)
                                     _SeriesFavStrip(
-                                      title: '⏳ ${state.s.continueWatching}',
+                                      title: state.s.continueWatch,
                                       channels: _continueWatching,
                                       progressMap: _seriesProgress,
                                       onTap: (ch) => _onSeriesTap(ch, state.active!.id),
+                                      onLongPress: (ch) => _confirmRemoveCW(ch),
                                     ),
                                   if (_favorites.isNotEmpty)
                                     _SeriesFavStrip(
-                                      title: '⭐ ${state.s.favorites}',
+                                      title: state.s.favorites,
                                       channels: _favorites,
                                       progressMap: _seriesProgress,
                                       onTap: (ch) => _onSeriesTap(ch, state.active!.id),
+                                      onLongPress: (ch) => _confirmRemoveFavorite(ch),
                                     ),
                                 ]),
                               ),
@@ -501,12 +543,14 @@ class _SeriesFavStrip extends StatelessWidget {
   final List<ChannelModel> channels;
   final Map<String, double> progressMap;
   final void Function(ChannelModel) onTap;
+  final void Function(ChannelModel)? onLongPress;
 
   const _SeriesFavStrip({
     required this.title,
     required this.channels,
     required this.progressMap,
     required this.onTap,
+    this.onLongPress,
   });
 
   @override
@@ -532,6 +576,7 @@ class _SeriesFavStrip extends StatelessWidget {
                   channel: ch,
                   seriesProgress: prog,
                   onTap: () => onTap(ch),
+                  onLongPress: onLongPress != null ? () => onLongPress!(ch) : null,
                 );
               },
             ),

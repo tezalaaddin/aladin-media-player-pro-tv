@@ -5,7 +5,7 @@ import '../../core/models/aladin_channel_model.dart';
 import '../../core/models/aladin_playlist_model.dart';
 import '../../core/state/aladin_app_state.dart';
 import '../series/aladin_series_page.dart';
-
+import '../../core/state/aladin_app_prefs.dart';
 import '../../core/services/aladin_metadata_sync_service.dart';
 
 class PlayerPage extends StatefulWidget {
@@ -91,6 +91,7 @@ class _PlayerPageState extends State<PlayerPage> {
         'favs':         favs,
         'positions':    positions,
         'index':        filteredIndex >= 0 ? filteredIndex : 0,
+        'decoderMode':  AladinPrefs.instance.getString('decoderMode') ?? 'auto',
         // Localization
         'i18n': {
           'subtitles': s.subtitles,
@@ -114,6 +115,10 @@ class _PlayerPageState extends State<PlayerPage> {
           'attempt': s.attempt,
           'error_detailed': s.streamErrorDetailed,
           'sleep_timer': s.sleepTimer,
+          'no_network': s.noNetwork,
+          'playback_error': s.playbackError,
+          'decoder_suggestion': s.decoderSuggestion,
+          'go_to_settings': s.goToSettings,
         }
       });
       

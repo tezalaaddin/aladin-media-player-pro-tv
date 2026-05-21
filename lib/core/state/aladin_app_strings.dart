@@ -13,6 +13,7 @@ class AppStrings {
   String _t(String k) => _map[k] ?? k;
 
   // ── Navigation ─────────────────────────────────────────────────────────────
+  String get appNameShort   => _t('appNameShort');
   String get navLiveTV      => _t('navLiveTV');
   String get navMovies      => _t('navMovies');
   String get navSeries      => _t('navSeries');
@@ -158,6 +159,16 @@ class AppStrings {
   String get attempt           => _t('attempt');
   String get streamErrorDetailed => _t('streamErrorDetailed');
   String get sleepTimer       => _t('sleepTimer');
+  String get noNetwork        => _t('noNetwork');
+  String get playbackError    => _t('playbackError');
+  String get decoderSuggestion => _t('decoderSuggestion');
+  String get decoderMode      => _t('decoderMode');
+  String get hwDecoder        => _t('hwDecoder');
+  String get swDecoder        => _t('swDecoder');
+  String get autoDecoder      => _t('autoDecoder');
+  String get decoderAuto => _t('autoDecoder');
+  String get decoderHw   => _t('hwDecoder');
+  String get decoderSw   => _t('swDecoder');
 
   // ── Settings ───────────────────────────────────────────────────────────────
   String get settingsTitle    => _t('settingsTitle');
@@ -174,7 +185,49 @@ class AppStrings {
   String get localLoaded      => _t('localLoaded');
   String get langTitle        => _t('langTitle');
   String get syncingData      => _t('syncingData');
+  
+  String get setupWizard      => _t('setupWizard');
+  String get setupWizardSub   => _t('setupWizardSub');
+  String get addM3uTitle      => _t('addM3uTitle');
+  String get addXtreamTitle   => _t('addXtreamTitle');
+  String get appAndListMgmt   => _t('appAndListMgmt');
+  String get newPlaylistAdd   => _t('newPlaylistAdd');
+  String get actions          => _t('actions');
+  String get version          => _t('version');
+  String get checkUpdates     => _t('checkUpdates');
+  String get checkingUpdates  => _t('checkingUpdates');
+  String get upToDate         => _t('upToDate');
+  String get active           => _t('active');
+  String get selectSource     => _t('selectSource');
+  String get m3uSub           => _t('m3uSub');
+  String get xtreamSub        => _t('xtreamSub');
+  String get localSub         => _t('localSub');
+  String get altProtocolTry   => _t('altProtocolTry');
+  String get httpsError       => _t('httpsError');
+  String get m3uUrl           => _t('m3uUrl');
+  String get playStore        => _t('playStore');
+  String get github           => _t('github');
+  String get rating           => _t('rating');
+  String get year             => _t('year');
+  String get alpha            => _t('alpha');
+  String get noContentFound   => _t('noContentFound');
+  String get forSmartTv       => _t('forSmartTv');
 
+  String removeFavoriteQ(String name) =>
+      (_map['removeFavoriteQ'] ?? 'Remove "{name}" from favorites?').replaceAll('{name}', name);
+
+  String removeListQ(String name) =>
+      (_map['removeListQ'] ?? 'Remove "{name}" from list?').replaceAll('{name}', name);
+
+  String listSavedCount(int count) =>
+      (_map['listSavedCount'] ?? '{count} Lists Saved').replaceAll('{count}', '$count');
+
+  String playlistStats({required int tv, required int movie, required int series}) =>
+      (_map['playlistStats'] ?? 'TV: {tv} | Movies: {movie} | Series: {series}')
+          .replaceAll('{tv}', '$tv')
+          .replaceAll('{movie}', '$movie')
+          .replaceAll('{series}', '$series');
+  
   // ── Folder Explorer ────────────────────────────────────────────────────────
   String get allDrives        => _t('allDrives');
   String get deviceFiles      => _t('deviceFiles');
@@ -208,6 +261,7 @@ class AppStrings {
   };
 
   static const Map<String, String> _trMap = {
+    'appNameShort':   'Aladin Player',
     'navLiveTV':      'Canlı TV',
     'navMovies':      'Filmler',
     'navSeries':      'Diziler',
@@ -337,6 +391,13 @@ class AppStrings {
     'attempt':        'Deneme',
     'streamErrorDetailed': 'Bu içerik şu an açılamıyor. Lütfen internet bağlantınızı veya sunucunuzdaki yayını kontrol edin.\n\nHata Veren Adres:',
     'sleepTimer':     'Uyku Zamanlayıcı',
+    'noNetwork':      'İnternet bağlantısı kesildi. Bekleniyor...',
+    'playbackError':  'Oynatma Hatası',
+    'decoderSuggestion': 'Ayarlardan Yazılımsal Kod Çözücü\'yü deneyin.',
+    'decoderMode':    'Kod Çözücü Modu',
+    'hwDecoder':      'Donanımsal (Hardware)',
+    'swDecoder':      'Yazılımsal (Software)',
+    'autoDecoder':    'Otomatik',
     'settingsTitle':  'Aladin Media Player Pro',
     'about':          'Hakkında',
     'developer':      'Geliştirici: Aladin',
@@ -357,9 +418,40 @@ class AppStrings {
     'upFolder':       '.. (Üst Klasör)',
     'accessError':    'Erişim Hatası',
     'goInternal':     'Dahili Hafızaya Git',
+    'setupWizard':    'Kurulum Sihirbazı',
+    'setupWizardSub': 'Hızlı ve kolay kurulum adımları',
+    'addM3uTitle':    'M3U Playlist Ekle',
+    'addXtreamTitle': 'Xtream Codes Girişi',
+    'appAndListMgmt': 'Uygulama ve Liste Yönetimi',
+    'newPlaylistAdd': 'YENİ LİSTE EKLE',
+    'actions':        'İŞLEMLER',
+    'version':        'Versiyon',
+    'checkUpdates':   'GÜNCELLEMELERİ KONTROL ET',
+    'checkingUpdates':'Güncellemeler kontrol ediliyor...',
+    'upToDate':       'Uygulamanız güncel.',
+    'active':         'AKTİF',
+    'selectSource':   'Playlist Kaynağını Seçin',
+    'm3uSub':         'Web adresi üzerinden yükle',
+    'xtreamSub':      'Kullanıcı ve şifre ile giriş',
+    'localSub':       'Cihazdaki .m3u dosyasını seç',
+    'altProtocolTry': 'Alternatif protokol deneniyor...',
+    'httpsError':     'HTTPS Hatası! Lütfen http:// ile deneyin.',
+    'listSavedCount': '{count} Liste Kayıtlı',
+    'm3uUrl':         'M3U URL',
+    'playStore':      'Google Play Store',
+    'github':         'GitHub',
+    'playlistStats':  'TV: {tv} | Film: {movie} | Dizi: {series}',
+    'rating':         'Puan',
+    'year':           'Yıl',
+    'alpha':          'A-Z',
+    'noContentFound': 'Bu kategoride içerik bulunamadı.',
+    'forSmartTv':     'FOR SMART TV',
+    'removeFavoriteQ': '"{name}" favorilerden çıkarılsın mı?',
+    'removeListQ':     '"{name}" listeden kaldırılsın mı?',
   };
 
   static const Map<String, String> _enMap = {
+    'appNameShort':   'Aladin Player',
     'navLiveTV':      'Live TV',
     'navMovies':      'Movies',
     'navSeries':      'Series',
@@ -489,6 +581,13 @@ class AppStrings {
     'attempt':        'Attempt',
     'streamErrorDetailed': 'This stream cannot be opened at the moment. Please check your internet settings or the source link on your server.\n\nFailing URL:',
     'sleepTimer':     'Sleep Timer',
+    'noNetwork':      'No network connection. Waiting...',
+    'playbackError':  'Playback Error',
+    'decoderSuggestion': 'Try Software Decoder from settings.',
+    'decoderMode':    'Decoder Mode',
+    'hwDecoder':      'Hardware',
+    'swDecoder':      'Software',
+    'autoDecoder':    'Auto',
     'settingsTitle':  'Aladin Media Player Pro TV',
     'about':          'About',
     'developer':      'Developer: Aladin',
@@ -509,9 +608,40 @@ class AppStrings {
     'upFolder':       '.. (Up Folder)',
     'accessError':    'Access Error',
     'goInternal':     'Go to Internal Storage',
+    'setupWizard':    'Setup Wizard',
+    'setupWizardSub': 'Quick and easy setup steps',
+    'addM3uTitle':    'Add M3U Playlist',
+    'addXtreamTitle': 'Xtream Codes Login',
+    'appAndListMgmt': 'App & Playlist Management',
+    'newPlaylistAdd': 'ADD NEW PLAYLIST',
+    'actions':        'ACTIONS',
+    'version':        'Version',
+    'checkUpdates':   'CHECK FOR UPDATES',
+    'checkingUpdates':'Checking for updates...',
+    'upToDate':       'Your app is up to date.',
+    'active':         'ACTIVE',
+    'selectSource':   'Select Playlist Source',
+    'm3uSub':         'Upload via web address',
+    'xtreamSub':      'Login with user and password',
+    'localSub':       'Select .m3u file on device',
+    'altProtocolTry': 'Trying alternative protocol...',
+    'httpsError':     'HTTPS Error! Please try with http://.',
+    'listSavedCount': '{count} Lists Saved',
+    'm3uUrl':         'M3U URL',
+    'playStore':      'Google Play Store',
+    'github':         'GitHub',
+    'playlistStats':  'TV: {tv} | Movies: {movie} | Series: {series}',
+    'rating':         'Rating',
+    'year':           'Year',
+    'alpha':          'A-Z',
+    'noContentFound': 'No content found in this category.',
+    'forSmartTv':     'FOR SMART TV',
+    'removeFavoriteQ': 'Remove "{name}" from favorites?',
+    'removeListQ':     'Remove "{name}" from list?',
   };
 
   static const Map<String, String> _deMap = {
+    'appNameShort':   'Aladin Player',
     'navLiveTV':      'Live TV',
     'navMovies':      'Filme',
     'navSeries':      'Serien',
@@ -637,6 +767,13 @@ class AppStrings {
     'retryWithOk':    'Drücken Sie OK, um es erneut zu versuchen',
     'attempt':        'Versuch',
     'streamErrorDetailed': 'Dieser Stream kann momentan nicht geöffnet werden. Bitte überprüfen Sie Ihre Internetverbindung oder den Quelllink auf Ihrem Server.\n\nFehlerhafte URL:',
+    'noNetwork':      'Keine Netzwerkverbindung. Warten...',
+    'playbackError':  'Wiedergabefehler',
+    'decoderSuggestion': 'Versuchen Sie den Software-Decoder in den Einstellungen.',
+    'decoderMode':    'Decoder-Modus',
+    'hwDecoder':      'Hardware',
+    'swDecoder':      'Software',
+    'autoDecoder':    'Auto',
     'settingsTitle':  'Aladin Media Player Pro TV',
     'tabM3U':         'M3U URL',
     'tabXtream':      'Xtream',
@@ -655,9 +792,41 @@ class AppStrings {
     'upFolder':       '.. (Oberer Ordner)',
     'accessError':    'Zugriffsfehler',
     'goInternal':     'Zum internen Speicher',
+    'setupWizard':    'Setup-Assistent',
+    'setupWizardSub': 'Schnelle und einfache Einrichtungsschritte',
+    'addM3uTitle':    'M3U-Playlist hinzufügen',
+    'addXtreamTitle': 'Xtream Codes Login',
+    'appAndListMgmt': 'App- & Playlist-Verwaltung',
+    'newPlaylistAdd': 'NEUE PLAYLIST HINZUFÜGEN',
+    'actions':        'AKTIONEN',
+    'version':        'Version',
+    'checkUpdates':   'AUF UPDATES PRÜFEN',
+    'checkingUpdates':'Suche nach Updates...',
+    'upToDate':       'Ihre App ist auf dem neuesten Stand.',
+    'active':         'AKTIV',
+    'selectSource':   'Playlist-Quelle auswählen',
+    'm3uSub':         'Über Webadresse hochladen',
+    'xtreamSub':      'Login mit Benutzer und Passwort',
+    'localSub':       '.m3u-Datei auf dem Gerät auswählen',
+    'altProtocolTry': 'Versuche alternatives Protokoll...',
+    'httpsError':     'HTTPS-Fehler! Bitte versuchen Sie es mit http://.',
+    'listSavedCount': '{count} Listen gespeichert',
+    'm3uUrl':         'M3U-URL',
+    'playStore':      'Google Play Store',
+    'github':         'GitHub',
+    'playlistStats':  'TV: {tv} | Filme: {movie} | Serien: {series}',
+    'rating':         'Bewertung',
+    'year':           'Jahr',
+    'alpha':          'A-Z',
+    'noContentFound': 'Kein Inhalt in dieser Kategorie gefunden.',
+    'forSmartTv':     'FÜR SMART TV',
+    'removeFavoriteQ': '"{name}" aus Favoriten entfernen?',
+    'removeListQ':     '"{name}" aus Liste entfernen?',
+    'sleepTimer':     'Sleep-Timer',
   };
 
   static const Map<String, String> _frMap = {
+    'appNameShort':   'Aladin Player',
     'navLiveTV':      'TV en direct',
     'navMovies':      'Films',
     'navSeries':      'Séries',
@@ -783,6 +952,13 @@ class AppStrings {
     'retryWithOk':    'Appuyez sur OK pour réessayer',
     'attempt':        'Tentative',
     'streamErrorDetailed': 'Ce flux ne peut pas être ouvert pour le moment. Veuillez vérifier vos paramètres internet ou le lien source sur votre serveur.\n\nURL en échec:',
+    'noNetwork':      'Pas de connexion réseau. En attente...',
+    'playbackError':  'Erreur de lecture',
+    'decoderSuggestion': 'Essayez le décodeur logiciel dans les paramètres.',
+    'decoderMode':    'Mode décodeur',
+    'hwDecoder':      'Matériel',
+    'swDecoder':      'Logiciel',
+    'autoDecoder':    'Auto',
     'settingsTitle':  'Aladin Media Player Pro TV',
     'tabM3U':         'URL M3U',
     'tabXtream':      'Xtream',
@@ -801,9 +977,41 @@ class AppStrings {
     'upFolder':       '.. (Dossier parent)',
     'accessError':    'Erreur d\'accès',
     'goInternal':     'Aller à la mémoire interne',
+    'setupWizard':    'Assistant de configuration',
+    'setupWizardSub': 'Étapes de configuration rapides et faciles',
+    'addM3uTitle':    'Ajouter une playlist M3U',
+    'addXtreamTitle': 'Connexion Xtream Codes',
+    'appAndListMgmt': 'Gestion des applications et des listes',
+    'newPlaylistAdd': 'AJOUTER UNE NOUVELLE PLAYLIST',
+    'actions':        'ACTIONS',
+    'version':        'Version',
+    'checkUpdates':   'VÉRIFIER LES MISES À JOUR',
+    'checkingUpdates':'Vérification des mises à jour...',
+    'upToDate':       'Votre application est à jour.',
+    'active':         'ACTIF',
+    'selectSource':   'Sélectionner la source de la playlist',
+    'm3uSub':         'Télécharger via l\'adresse web',
+    'xtreamSub':      'Connexion avec utilisateur et mot de passe',
+    'localSub':       'Sélectionner le fichier .m3u sur l\'appareil',
+    'altProtocolTry': 'Essai d\'un protocole alternatif...',
+    'httpsError':     'Erreur HTTPS ! Veuillez essayer avec http://.',
+    'listSavedCount': '{count} listes enregistrées',
+    'm3uUrl':         'URL M3U',
+    'playStore':      'Google Play Store',
+    'github':         'GitHub',
+    'playlistStats':  'TV : {tv} | Films : {movie} | Séries : {series}',
+    'rating':         'Note',
+    'year':           'Année',
+    'alpha':          'A-Z',
+    'noContentFound': 'Aucun contenu trouvé dans cette catégorie.',
+    'forSmartTv':     'POUR SMART TV',
+    'removeFavoriteQ': 'Retirer "{name}" des favoris ?',
+    'removeListQ':     'Supprimer "{name}" de la liste ?',
+    'sleepTimer':     'Minuterie de mise en veille',
   };
 
   static const Map<String, String> _esMap = {
+    'appNameShort':   'Aladin Player',
     'navLiveTV':      'TV en vivo',
     'navMovies':      'Películas',
     'navSeries':      'Series',
@@ -929,6 +1137,13 @@ class AppStrings {
     'retryWithOk':    'Presione OK para reintentar',
     'attempt':        'Intento',
     'streamErrorDetailed': 'Este stream no se puede abrir en este momento. Por favor, compruebe su configuración de internet o el enlace de origen en su servidor.\n\nURL con error:',
+    'noNetwork':      'Sin conexión de red. Esperando...',
+    'playbackError':  'Error de reproducción',
+    'decoderSuggestion': 'Pruebe el decodificador de software en los ajustes.',
+    'decoderMode':    'Modo decodificador',
+    'hwDecoder':      'Hardware',
+    'swDecoder':      'Software',
+    'autoDecoder':    'Auto',
     'settingsTitle':  'Aladin Media Player Pro TV',
     'tabM3U':         'URL M3U',
     'tabXtream':      'Xtream',
@@ -947,9 +1162,41 @@ class AppStrings {
     'upFolder':       '.. (Carpeta superior)',
     'accessError':    'Error de acceso',
     'goInternal':     'Ir al almacenamiento interno',
+    'setupWizard':    'Asistente de configuración',
+    'setupWizardSub': 'Pasos de configuración rápidos y sencillos',
+    'addM3uTitle':    'Añadir lista de reproducción M3U',
+    'addXtreamTitle': 'Inicio de sesión de Xtream Codes',
+    'appAndListMgmt': 'Gestión de aplicaciones y listas',
+    'newPlaylistAdd': 'AÑADIR NUEVA LISTA DE REPRODUCCIÓN',
+    'actions':        'ACCIONES',
+    'version':        'Versión',
+    'checkUpdates':   'BUSCAR ACTUALIZACIONES',
+    'checkingUpdates':'Buscando actualizaciones...',
+    'upToDate':       'Su aplicación está actualizada.',
+    'active':         'ACTIVO',
+    'selectSource':   'Seleccionar fuente de lista de reproducción',
+    'm3uSub':         'Cargar a través de la dirección web',
+    'xtreamSub':      'Iniciar sesión con usuario y contraseña',
+    'localSub':       'Seleccionar archivo .m3u en el dispositivo',
+    'altProtocolTry': 'Probando protocolo alternativo...',
+    'httpsError':     '¡Error de HTTPS! Inténtalo con http://.',
+    'listSavedCount': '{count} listas guardadas',
+    'm3uUrl':         'URL M3U',
+    'playStore':      'Google Play Store',
+    'github':         'GitHub',
+    'playlistStats':  'TV: {tv} | Cine: {movie} | Series: {series}',
+    'rating':         'Calificación',
+    'year':           'Año',
+    'alpha':          'A-Z',
+    'noContentFound': 'No se encontró contenido en esta categoría.',
+    'forSmartTv':     'PARA SMART TV',
+    'removeFavoriteQ': '¿Quitar "{name}" de favoritos?',
+    'removeListQ':     '¿Eliminar "{name}" de la lista?',
+    'sleepTimer':     'Temporizador de apagado',
   };
 
   static const Map<String, String> _ruMap = {
+    'appNameShort':   'Aladin Player',
     'navLiveTV':      'Прямой эфир',
     'navMovies':      'Фильмы',
     'navSeries':      'Сериалы',
@@ -1075,6 +1322,13 @@ class AppStrings {
     'retryWithOk':    'Нажмите OK, чтобы повторить попытку',
     'attempt':        'Попытка',
     'streamErrorDetailed': 'Этот поток не может быть открыт в данный момент. Пожалуйста, проверьте настройки интернета или исходную ссылку на вашем сервере.\n\nОшибка URL:',
+    'noNetwork':      'Нет сетевого подключения. Ожидание...',
+    'playbackError':  'Ошибка воспроизведения',
+    'decoderSuggestion': 'Попробуйте программный декодер в настройках.',
+    'decoderMode':    'Режим декодера',
+    'hwDecoder':      'Аппаратный',
+    'swDecoder':      'Программный',
+    'autoDecoder':    'Авто',
     'settingsTitle':  'Aladin Media Player Pro TV',
     'tabM3U':         'M3U URL',
     'tabXtream':      'Xtream',
@@ -1093,9 +1347,41 @@ class AppStrings {
     'upFolder':       '.. (Вверх)',
     'accessError':    'Ошибка доступа',
     'goInternal':     'В память устройства',
+    'setupWizard':    'Мастер настройки',
+    'setupWizardSub': 'Быстрая и простая настройка',
+    'addM3uTitle':    'Добавить плейлист M3U',
+    'addXtreamTitle': 'Вход Xtream Codes',
+    'appAndListMgmt': 'Управление приложением и плейлистами',
+    'newPlaylistAdd': 'ДОБАВИТЬ НОВЫЙ ПЛЕЙЛИСТ',
+    'actions':        'ДЕЙСТВИЯ',
+    'version':        'Версия',
+    'checkUpdates':   'ПРОВЕРИТЬ ОБНОВЛЕНИЯ',
+    'checkingUpdates':'Проверка обновлений...',
+    'upToDate':       'Приложение обновлено.',
+    'active':         'АКТИВЕН',
+    'selectSource':   'Выберите источник плейлиста',
+    'm3uSub':         'Загрузить по веб-адресу',
+    'xtreamSub':      'Вход по логину и паролю',
+    'localSub':       'Выбрать файл .m3u на устройстве',
+    'altProtocolTry': 'Попытка альтернативного протокола...',
+    'httpsError':     'Ошибка HTTPS! Попробуйте с http://.',
+    'listSavedCount': 'Сохранено списков: {count}',
+    'm3uUrl':         'M3U URL',
+    'playStore':      'Google Play Store',
+    'github':         'GitHub',
+    'playlistStats':  'ТВ: {tv} | Фильмы: {movie} | Сериалы: {series}',
+    'rating':         'Рейтинг',
+    'year':           'Год',
+    'alpha':          'А-Я',
+    'noContentFound': 'В этой категории ничего не найдено.',
+    'forSmartTv':     'ДЛЯ SMART TV',
+    'removeFavoriteQ': 'Удалить "{name}" из избранного?',
+    'removeListQ':     'Удалить "{name}" из списка?',
+    'sleepTimer':     'Таймер сна',
   };
 
   static const Map<String, String> _zhMap = {
+    'appNameShort':   'Aladin Player',
     'navLiveTV':      '直播电视',
     'navMovies':      '电影',
     'navSeries':      '剧集',
@@ -1221,6 +1507,13 @@ class AppStrings {
     'retryWithOk':    '按确定键重试',
     'attempt':        '尝试',
     'streamErrorDetailed': '目前无法打开此流。请检查您的网络设置或服务器上的源链接。\n\n错误的 URL:',
+    'noNetwork':      '无网络连接。正在等待...',
+    'playbackError':  '播放错误',
+    'decoderSuggestion': '请在设置中尝试软件解码器。',
+    'decoderMode':    '解码器模式',
+    'hwDecoder':      '硬件解码',
+    'swDecoder':      '软件解码',
+    'autoDecoder':    '自动',
     'settingsTitle':  'Aladin Media Player Pro TV',
     'tabM3U':         'M3U URL',
     'tabXtream':      'Xtream',
@@ -1239,9 +1532,41 @@ class AppStrings {
     'upFolder':       '.. (上级文件夹)',
     'accessError':    '访问错误',
     'goInternal':     '前往内部存储',
+    'setupWizard':    '设置向导',
+    'setupWizardSub': '快速简便的设置步骤',
+    'addM3uTitle':    '添加 M3U 播放列表',
+    'addXtreamTitle': 'Xtream Codes 登录',
+    'appAndListMgmt': '应用与播放列表管理',
+    'newPlaylistAdd': '添加新播放列表',
+    'actions':        '操作',
+    'version':        '版本',
+    'checkUpdates':   '检查更新',
+    'checkingUpdates':'正在检查更新...',
+    'upToDate':       '您的应用已是最新版本。',
+    'active':         '激活',
+    'selectSource':   '选择播放列表来源',
+    'm3uSub':         '通过网址上传',
+    'xtreamSub':      '使用用户名和密码登录',
+    'localSub':       '选择设备上的 .m3u 文件',
+    'altProtocolTry': '尝试备用协议...',
+    'httpsError':     'HTTPS 错误！请尝试使用 http://。',
+    'listSavedCount': '已保存 {count} 个列表',
+    'm3uUrl':         'M3U URL',
+    'playStore':      'Google Play Store',
+    'github':         'GitHub',
+    'playlistStats':  '电视: {tv} | 电影: {movie} | 剧集: {series}',
+    'rating':         '评分',
+    'year':           '年份',
+    'alpha':          'A-Z',
+    'noContentFound': '该类别下未找到内容。',
+    'forSmartTv':     '适用于智能电视',
+    'removeFavoriteQ': '将 "{name}" 从收藏夹中移除？',
+    'removeListQ':     '将 "{name}" 从列表中移除？',
+    'sleepTimer':     '睡眠定时器',
   };
 
   static const Map<String, String> _arMap = {
+    'appNameShort':   'Aladin Player',
     'navLiveTV':      'بث مباشر',
     'navMovies':      'أفلام',
     'navSeries':      'مسلسلات',
@@ -1367,6 +1692,13 @@ class AppStrings {
     'retryWithOk':    'اضغط على موافق لإعادة المحاولة',
     'attempt':        'محاولة',
     'streamErrorDetailed': 'لا يمكن فتح هذا البث في الوقت الحالي. يرجى التحقق من إعدادات الإنترنت أو رابط المصدر على الخادم الخاص بك.\n\nالرابط المتعطل:',
+    'noNetwork':      'لا يوجد اتصال بالشبكة. جاري الانتظار...',
+    'playbackError':  'خطأ في التشغيل',
+    'decoderSuggestion': 'جرب فك الترميز البرمجي من الإعدادات.',
+    'decoderMode':    'وضع فك الترميز',
+    'hwDecoder':      'عتادي (Hardware)',
+    'swDecoder':      'برمجي (Software)',
+    'autoDecoder':    'تلقائي',
     'settingsTitle':  'Aladin Media Player Pro TV',
     'tabM3U':         'M3U URL',
     'tabXtream':      'Xtream',
@@ -1385,5 +1717,36 @@ class AppStrings {
     'upFolder':       '.. (المجلد الأعلى)',
     'accessError':    'خطأ في الوصول',
     'goInternal':     'الذهاب للذاكرة الداخلية',
+    'setupWizard':    'معالج الإعداد',
+    'setupWizardSub': 'خطوات إعداد سريعة وسهلة',
+    'addM3uTitle':    'إضافة قائمة تشغيل M3U',
+    'addXtreamTitle': 'تسجيل دخول Xtream Codes',
+    'appAndListMgmt': 'إدارة التطبيق وقوائم التشغيل',
+    'newPlaylistAdd': 'إضافة قائمة تشغيل جديدة',
+    'actions':        'إجراءات',
+    'version':        'الإصدار',
+    'checkUpdates':   'التحقق من وجود تحديثات',
+    'checkingUpdates':'جاري التحقق من وجود تحديثات...',
+    'upToDate':       'تطبيقك محدث.',
+    'active':         'نشط',
+    'selectSource':   'حدد مصدر قائمة التشغيل',
+    'm3uSub':         'تحميل عبر عنوان الويب',
+    'xtreamSub':      'تسجيل الدخول بالمستخدم وكلمة المرور',
+    'localSub':       'حدد ملف .m3u على الجهاز',
+    'altProtocolTry': 'جاري تجربة بروتوكول بديل...',
+    'httpsError':     'خطأ HTTPS! يرجى المحاولة باستخدام http://.',
+    'listSavedCount': 'تم حفظ {count} قوائم',
+    'm3uUrl':         'رابط M3U',
+    'playStore':      'Google Play Store',
+    'github':         'GitHub',
+    'playlistStats':  'بث مباشر: {tv} | أفلام: {movie} | مسلسلات: {series}',
+    'rating':         'التقييم',
+    'year':           'السنة',
+    'alpha':          'أ-ي',
+    'noContentFound': 'لم يتم العثور على محتوى في هذه الفئة.',
+    'forSmartTv':     'للتلفاز الذكي',
+    'removeFavoriteQ': 'هل تريد إزالة "{name}" من المفضلة؟',
+    'removeListQ':     'هل تريد إزالة "{name}" من القائمة؟',
+    'sleepTimer':     'مؤقت النوم',
   };
 }

@@ -30,7 +30,9 @@ class AppState extends ChangeNotifier {
   String? get activeSeriesOverview => _activeSeriesOverview;
 
   Future<void> init() async {
-    await AladinPrefs.instance.load();
+    // ⚠️ Madde 3: Burada AladinPrefs.instance.load() ÇAĞRILMAZ.
+    // main.dart'ta await ile önceden yüklendiği garanti edilmiştir.
+    // Çift yükleme race condition'ına neden oluyordu.
     _lang = AladinPrefs.instance.getString('lang') ?? 'tr';
   }
 
@@ -77,6 +79,19 @@ class AppState extends ChangeNotifier {
 
   void refreshFavorites() {
     notifyListeners();
+  }
+
+  int? _requestedIndex;
+  int? get requestedIndex => _requestedIndex;
+
+  void navigateToSettings() {
+    _requestedIndex = 5;
+    notifyListeners();
+  }
+
+  void clearNavigationRequest() {
+    _requestedIndex = null;
+    // notifyListeners() ÇAĞIRILMAZ - rebuild döngüsünü engeller
   }
 
   Future<void> refresh() => loadPlaylists();

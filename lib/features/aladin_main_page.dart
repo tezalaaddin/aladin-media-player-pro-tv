@@ -73,16 +73,17 @@ class _MainPageState extends State<MainPage> {
     bool isEditable = false;
     
     if (primaryFocus != null) {
+      final context = primaryFocus.context;
       final dbg = primaryFocus.debugLabel?.toLowerCase() ?? '';
-      isEditable = primaryFocus.context?.widget is EditableText ||
-                   primaryFocus.context?.findAncestorWidgetOfExactType<EditableText>() != null ||
+      isEditable = context?.widget is EditableText ||
+                   context?.findAncestorWidgetOfExactType<TextField>() != null ||
                    dbg.contains('editable') ||
                    dbg.contains('field') ||
                    dbg.contains('input');
     }
 
     final now = DateTime.now();
-    if (_lastKeyEventTime != null && now.difference(_lastKeyEventTime!) < const Duration(milliseconds: 300)) {
+    if (_lastKeyEventTime != null && now.difference(_lastKeyEventTime!) < const Duration(milliseconds: 150)) {
       return KeyEventResult.handled;
     }
     _lastKeyEventTime = now;
@@ -126,6 +127,20 @@ class _MainPageState extends State<MainPage> {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
+    
+    final reqIdx = state.requestedIndex;
+    if (reqIdx != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          state.clearNavigationRequest(); // Önce temizle (side effect frame sonunda)
+          _goTo(reqIdx);
+          if (reqIdx < _navNodes.length) {
+            _navNodes[reqIdx].requestFocus();
+          }
+        }
+      });
+    }
+
     final s = state.s;
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
@@ -357,10 +372,18 @@ class _SideNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = context.watch<AppState>().s;
     return Container(
-      width: 240,
-      decoration: const BoxDecoration(
+      width: 280, // Biraz daha geniş ve ferah
+      decoration: BoxDecoration(
         color: AppTheme.surface,
-        border: Border(right: BorderSide(color: AppTheme.divider, width: 1)),
+        border: const Border(right: BorderSide(color: Colors.white12, width: 1)),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppTheme.surface,
+            AppTheme.background.withOpacity(0.8),
+          ],
+        ),
       ),
       child: Column(
         children: [
@@ -381,13 +404,13 @@ class _SideNavBar extends StatelessWidget {
                   child: const Icon(Icons.live_tv, color: Colors.white, size: 28),
                 ),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Aladin Player',
-                        style: TextStyle(
+                        s.appNameShort,
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 20,
                           fontWeight: FontWeight.w900,
@@ -397,8 +420,8 @@ class _SideNavBar extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
-                        'FOR SMART TV',
-                        style: TextStyle(
+                        s.forSmartTv,
+                        style: const TextStyle(
                           color: AppTheme.accent,
                           fontSize: 8,
                           fontWeight: FontWeight.bold,
@@ -517,7 +540,9 @@ class _SideNavItem extends StatefulWidget {
 
 class _SideNavItemState extends State<_SideNavItem> {
   bool _isFocused = false;
-  static DateTime? _lastNavTime;
+  // Madde 4: static OLMAMALI — static olunca tüm nav item'lar aynı zamayıcıyı
+  // paylaşır; bir butona basmak diğerlerini 250ms kilitler.
+  DateTime? _lastNavTime;
 
   @override
   Widget build(BuildContext context) {

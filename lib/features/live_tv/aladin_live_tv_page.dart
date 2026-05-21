@@ -94,6 +94,23 @@ class _LiveTvPageState extends State<LiveTvPage> {
     if (_loadedId != null && mounted) _load(_loadedId!);
   }
 
+  Future<void> _confirmRemoveFavorite(ChannelModel ch) async {
+    final s = context.read<AppState>().s;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.card,
+        title: Text(s.favorites, style: const TextStyle(color: Colors.white)),
+        content: Text(s.removeFavoriteQ(ch.name), style: const TextStyle(color: AppTheme.textSecondary)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.cancel)),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(s.delete, style: const TextStyle(color: Colors.redAccent))),
+        ],
+      ),
+    );
+    if (ok == true) _toggleFav(ch);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<AppState>(builder: (_, state, __) {
@@ -174,9 +191,10 @@ class _LiveTvPageState extends State<LiveTvPage> {
                             delegate: SliverChildListDelegate([
                               if (_favorites.isNotEmpty)
                                 _HorizStrip(
-                                  title: '⭐ ${state.s.favorites}',
+                                  title: state.s.favorites,
                                   channels: _favorites,
                                   onTap: (ch) => _play(ch, _favorites),
+                                  onLongPress: (ch) => _confirmRemoveFavorite(ch),
                                 ),
                             ]),
                           ),
@@ -217,11 +235,13 @@ class _HorizStrip extends StatelessWidget {
   final String title;
   final List<ChannelModel> channels;
   final void Function(ChannelModel) onTap;
+  final void Function(ChannelModel)? onLongPress;
 
   const _HorizStrip({
     required this.title,
     required this.channels,
     required this.onTap,
+    this.onLongPress,
   });
 
   @override
@@ -244,6 +264,7 @@ class _HorizStrip extends StatelessWidget {
                 channel: channels[i],
                 tvMode: true,
                 onTap: () => onTap(channels[i]),
+                onLongPress: onLongPress != null ? () => onLongPress!(channels[i]) : null,
               ),
             ),
           ),

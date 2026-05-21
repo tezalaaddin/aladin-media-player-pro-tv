@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shimmer/shimmer.dart';
 import '../../core/models/aladin_channel_model.dart';
 import '../../core/models/aladin_category_model.dart';
 import '../../core/services/aladin_channel_service.dart';
@@ -117,7 +116,7 @@ class _CategoryRowState extends State<CategoryRow> {
       SizedBox(
         height: _rowHeight, // Şerit yüksekliği (250)
         child: _loading
-            ? _Shimmer(height: _cardHeight)
+            ? _Placeholder(height: _cardHeight)
             : _channels.isEmpty
                 ? const SizedBox.shrink()
                 : ListView.builder(
@@ -150,21 +149,25 @@ class _CategoryRowState extends State<CategoryRow> {
   }
 }
 
-class _Shimmer extends StatelessWidget {
+class _Placeholder extends StatelessWidget {
   final double height;
-  const _Shimmer({required this.height});
+  const _Placeholder({required this.height});
 
   @override
   Widget build(BuildContext context) {
-    return Shimmer.fromColors(
-      baseColor: AppTheme.card,
-      highlightColor: AppTheme.cardHover,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        itemCount: 6,
-        itemExtent: 144, // Shimmer öğesi genişliği
-        itemBuilder: (_, __) => Container(width: 130, height: height, margin: const EdgeInsets.only(right: 14), decoration: BoxDecoration(color: AppTheme.card, borderRadius: BorderRadius.circular(8))),
+    return ListView.builder(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      itemCount: 6,
+      itemExtent: 144, // Öğe genişliği
+      itemBuilder: (_, __) => Container(
+        width: 130, 
+        height: height, 
+        margin: const EdgeInsets.only(right: 14), 
+        decoration: BoxDecoration(
+          color: AppTheme.card.withValues(alpha: 0.5), 
+          borderRadius: BorderRadius.circular(8)
+        ),
       ),
     );
   }

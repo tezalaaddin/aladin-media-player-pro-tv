@@ -33,13 +33,6 @@ android {
         targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-
-        // ELF alignment for 16KB page support
-        externalNativeBuild {
-            cmake {
-                arguments("-DANDROID_EXT_ELF_ALIGNMENT=16384")
-            }
-        }
     }
 
     signingConfigs {
@@ -47,32 +40,34 @@ android {
             // debug keystore varsayılan konumda
         }
         create("release") {
-            keyAlias = keystoreProperties["keyAlias"] as String?
-            keyPassword = keystoreProperties["keyPassword"] as String?
-            storeFile = keystoreProperties["storeFile"]?.let { file(it) }
+            keyAlias     = keystoreProperties["keyAlias"]     as String?
+            keyPassword  = keystoreProperties["keyPassword"]  as String?
+            storeFile    = keystoreProperties["storeFile"]?.let { file(it) }
             storePassword = keystoreProperties["storePassword"] as String?
         }
     }
 
     buildTypes {
         release {
-            signingConfig = if (keystorePropertiesFile.exists()) signingConfigs.getByName("release") else signingConfigs.getByName("debug")
-            isMinifyEnabled = true
-            isShrinkResources = true
+            // Madde 2: Fallback KALDIRILDI. key.properties yoksa build kasıtlı olarak hata verir.
+            // Hatalı/debug-imzalı AAB'nin Play Store'a gitmesini engeller.
+            signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled    = true
+            isShrinkResources  = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
         debug {
-            isMinifyEnabled = false
+            isMinifyEnabled   = false
             isShrinkResources = false
         }
     }
 
     lint {
-        disable += "MissingTranslation"
-        abortOnError = false
+        disable       += "MissingTranslation"
+        abortOnError   = false
         checkReleaseBuilds = false
     }
 
@@ -87,22 +82,37 @@ flutter {
     source = "../.."
 }
 
-dependencies {
-    implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("androidx.activity:activity-ktx:1.9.0")
-    implementation("androidx.media3:media3-exoplayer:1.3.1")
-    implementation("androidx.media3:media3-exoplayer-hls:1.3.1")
-    implementation("androidx.media3:media3-exoplayer-rtsp:1.3.1")
-    implementation("androidx.media3:media3-ui:1.3.1")
-    implementation("androidx.media3:media3-common:1.3.1")
-    
-    // Manuel olarak eklediğimiz FFmpeg kütüphanesi (AAR)
-    implementation(files("libs/media3-ffmpeg.aar"))
-    }
+// Tüm Media3 bağımlılıklarının aynı versiyonda kalmasını zorla.
+// Farklı Flutter paketleri eski Media3 sürümlerini geçişli olarak çekebilir;
+// bu blok sürüm çakışmalarını önler.
+val media3Version = "1.3.1"
 
 configurations.all {
     resolutionStrategy {
         force("androidx.core:core:1.13.1")
         force("androidx.core:core-ktx:1.13.1")
+        force("androidx.media3:media3-common:$media3Version")
+        force("androidx.media3:media3-exoplayer:$media3Version")
+        force("androidx.media3:media3-ui:$media3Version")
     }
+}
+
+dependencies {
+    // AndroidX
+    implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation("androidx.activity:activity-ktx:1.9.0")
+
+    // Media3 — tüm modüller aynı versiyonda olmalı
+    implementation("androidx.media3:media3-exoplayer:$media3Version")
+    implementation("androidx.media3:media3-exoplayer-hls:$media3Version")   // HLS (.m3u8)
+    implementation("androidx.media3:media3-exoplayer-dash:$media3Version")  // DASH (.mpd) — YENİ
+    implementation("androidx.media3:media3-exoplayer-rtsp:$media3Version")  // RTSP
+    implementation("androidx.media3:media3-ui:$media3Version")
+    implementation("androidx.media3:media3-common:$media3Version")
+
+    // Glide — poster yükleme
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+
+    // FFmpeg extension (yerel AAR)
+    implementation(files("libs/media3-ffmpeg.aar"))
 }

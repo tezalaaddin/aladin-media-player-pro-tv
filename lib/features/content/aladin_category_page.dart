@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import '../../core/models/aladin_channel_model.dart';
 import '../../core/models/aladin_category_model.dart';
 import '../../core/services/aladin_channel_service.dart';
+import '../../core/state/aladin_app_state.dart';
 import '../../shared/theme/aladin_app_theme.dart';
 import '../../shared/widgets/aladin_channel_card.dart';
 import 'dart:async';
@@ -75,6 +77,7 @@ class _AladinCategoryPageState extends State<AladinCategoryPage> {
   @override
   Widget build(BuildContext context) {
     final double safePadding = MediaQuery.of(context).size.width * 0.04; // Ekran genişliğine göre dinamik güvenli alan
+    final s = context.watch<AppState>().s;
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -116,7 +119,7 @@ class _AladinCategoryPageState extends State<AladinCategoryPage> {
             ),
             actions: [
               _SortButton(
-                label: 'Puan',
+                label: s.rating,
                 icon: Icons.star_border,
                 isSelected: _sortBy == 'rating',
                 isAscending: _isAscending,
@@ -130,7 +133,7 @@ class _AladinCategoryPageState extends State<AladinCategoryPage> {
                 },
               ),
               _SortButton(
-                label: 'Yıl',
+                label: s.year,
                 icon: Icons.calendar_today,
                 isSelected: _sortBy == 'year',
                 isAscending: _isAscending,
@@ -144,7 +147,7 @@ class _AladinCategoryPageState extends State<AladinCategoryPage> {
                 },
               ),
               _SortButton(
-                label: 'A-Z',
+                label: s.alpha,
                 icon: Icons.sort_by_alpha,
                 isSelected: _sortBy == 'alpha',
                 isAscending: _isAscending,
@@ -165,11 +168,11 @@ class _AladinCategoryPageState extends State<AladinCategoryPage> {
               child: Center(child: CircularProgressIndicator(color: AppTheme.accent)),
             )
           else if (_channels.isEmpty)
-            const SliverFillRemaining(
+            SliverFillRemaining(
               child: Center(
                 child: Text(
-                  'Bu kategoride içerik bulunamadı.', 
-                  style: TextStyle(color: AppTheme.textMuted, fontSize: 16),
+                  s.noContentFound, 
+                  style: const TextStyle(color: AppTheme.textMuted, fontSize: 16),
                 ),
               ),
             )

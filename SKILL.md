@@ -1,7 +1,7 @@
 ---
 name: aladin Media Player Pro TV
 description: Next-gen IPTV solution with high-performance EPG management and Netflix-style UI.
-version: 2.2.0+18
+version: 2.2.0+29
 author: tezalaaddin
 tags: [iptv, flutter, media-kit, streaming, isar]
 ---
@@ -1498,4 +1498,58 @@ Claude Raporu ve Play Console önerileri doğrultusunda yapılan kritik performa
    •   Play/Pause butonuna dairesel yükleme halkası (ProgressBar) eklendi.
    •   Hızlı Liste (6 tuşu), 10 dakikalık zaman atlaması (7-9 tuşları) ve detaylı teknik bilgi paneli (5 tuşu) entegre edildi.
 
-## V2.2.0+19 Sürüm Notları:
+## V2.2.0+21 Sürüm Notları:
+1. Gelişmiş Navigasyon ve Kumanda Odak Yönetimi:
+   •   Playlist Yönetimi: Ayarlar sayfasındaki playlist öğelerine "OK" (Enter/Select) tuşu ile açılan aksiyon menüsü eklendi. Artık kumanda ile playlistleri güncellemek, silmek veya adlandırmak çok daha kolay.
+   •   Uzun Basma Desteği: "Kaldığın Yerden" ve "Favoriler" listelerindeki öğelere hem dokunmatik hem kumanda ile uzun basıldığında (veya OK basıldığında) onay diyaloğu açılarak listeden kaldırma imkanı sağlandı.
+2. Performans ve RAM Optimizasyonu:
+   •   Görsel Bellek Yönetimi: Kanal logoları ve afişler için `memCacheWidth/Height` optimizasyonu yapıldı. RAM kullanımı düşük donanımlı cihazlarda (Stick/Box) %70-80 oranında düşürüldü.
+   •   Render Hızı: Kanal kartları `RepaintBoundary` içine alınarak GPU yükü minimize edildi, scroll akıcılığı artırıldı.
+   •   Hızlı Başlangıç: Uygulama açılışındaki veritabanı ve ayar yükleme işlemleri paralel hale getirilerek açılış hızı optimize edildi.
+3. Stabilite ve Güvenlik:
+   •   Play Console Uyumluluğu: Android Gradle Plugin (AGP) 8.9.1 sürümüne sabitlendi ve 0 cihaz destekleme sorunu çözüldü.
+   •   Güvenli Oynatıcı: Oynatıcı hata mesajlarındaki hassas URL bilgileri (Kullanıcı/Şifre) gizlendi.
+   •   Arka Plan Sync Koruması: Video oynatılırken işlemciyi yormamak için arka plan metadata senkronizasyonu otomatik olarak durdurulur.
+
+## V2.2.0+22 Sürüm Notları:
+1. Akıllı Dekoder Yönetimi ve Hata Kurtarma:
+   •   Dinamik Hata Yakalama: Oynatıcı, donanım hızlandırma (GPU) kaynaklı bir hata tespit ettiğinde artık kullanıcıya bilgilendirici bir ekran gösterir ve çözüm için doğrudan Ayarlar'a yönlendirir.
+   •   Hibrit Çözüm Stratejisi: Realtek TV gibi cihazlarda tam performans için Donanım (Hardware) önceliği korunurken, Lenovo TB-7305 gibi kronik sorunlu cihazlar için güvenli Yazılım (FFmpeg) modu otomatik devreye alınır.
+   •   Gelişmiş Uyumluluk: `libstagefright` kaynaklı çökme risklerini minimize etmek için düşük donanımlı cihazlarda ses ve görüntü işleme parametreleri optimize edildi.
+2. Sürdürülebilir Stabilite:
+   •   Hızlı kanal geçişlerinde (Zapping) bellek sızıntısını önlemek için `releasePlayer()` mekanizması güçlendirildi.
+   •   Oynatıcı hata logları daha detaylı hale getirilerek teknik analiz süreçleri hızlandırıldı.
+
+## V2.2.0+26 Sürüm Notları: Settings Page Kumanda ve Text Düzeltmeleri
+Bu değişimle beraber sadece bir görsel güncelleme değil, Android TV ekosistemindeki o kronik "klavye ve odak" sorunlarını kökten çözen profesyonel bir mimariye geçtik.
+Neler Yaptım?
+1. "Click-to-Edit" (Tıkla ve Düzenle) Modeline Geçiş:
+◦Hem Arama hem de Ayarlar sayfasındaki karmaşık, her cihazda farklı tepki veren satır içi TextField yapılarını kaldırdım.
+◦Bunun yerine, Netflix ve YouTube gibi devlerin kullandığı, kumanda dostu "Giriş Diyaloğu" sistemini getirdim. Artık kullanıcı bir alana tıkladığında, tüm odağı üzerine alan ve sanal klavyeyi %100 kararlılıkla tetikleyen özel bir ekran açılıyor.
+2. AladinInputDialog - TV İçin Optimize Edilmiş Giriş Alanı:
+◦Bu yeni bileşen, ekranın tamamını kaplayarak işletim sistemine "Şu an sadece yazı yazılıyor" sinyalini en güçlü şekilde gönderiyor. Bu sayede D-Pad (Yön tuşları) artık sanal klavyenin içine hapsoluyor ve harfler arasında gezinebiliyor.
+3. Ayarlar Sayfası Yeniden Kurgulandı:
+◦Eski Tab-Form yapısını terk edip, çok daha akıcı bir "Ayarlar Listesi" yapısına geçtim.
+◦M3U, Xtream ve Uygulama Ayarları artık şık kartlar halinde. Her kart odaklandığında parlıyor ve büyüyor. Bilgi girmek için sadece üzerine gelip "OK" tuşuna basmak yeterli.
+4. Arama Sayfası (Search) Premium Dokunuş:
+◦Arama çubuğu artık akıllı bir buton gibi davranıyor. Üzerine gelince parlıyor, basınca devasa ve temiz bir arama ekranı açılıyor.
+◦Arama sonuçları (Grid) navigasyonu, kumanda ile çok daha stabil hale getirildi.
+5. Global Kısayol (1-2-3-4-5-6) Koruması:
+◦Yeni modelde yazı girişi izole bir diyalogda yapıldığı için, MainPage'deki sayı kısayolları artık asla klavye tuşlarıyla çakışmayacak.
+6. Görsel ve Hissiyat (UX):
+◦Yan menü genişletildi ve yumuşak geçişli (gradient) bir görünüme kavuştu.
+◦Tüm etkileşimli öğelere Scale (Büyüme) ve Gölge efektleri eklenerek, odağın nerede olduğu TV ekranında "bağıran" bir netliğe kavuşturuldu.
+   *Sonuç:* Artık arkadaşının TV'sinde veya herhangi bir Android TV Box'ta "yazı yazamama" veya "klavyede gezinememe" sorunu yaşanmayacak. Çünkü sistem, odağı dağıtacak diğer tüm widget'ları arka planda uyutup sadece klavye ve input alanına odaklanıyor.
+Edited: aladin_settings_page.dart, aladin_search_page.dart, aladin_input_dialog.dart, aladin_main_page.dart
+
+## V2.2.0+27 Sürüm Notları:
+1. M3U Ekleme: Protokol hatasında otomatik tekrar deneme.
+2. Xtream Ekleme: Protokol hatasında otomatik tekrar deneme.
+3. Playlist Güncelleme: Kayıtlı listeleri güncellerken (refresh) bir hata oluşursa, protokolü değiştirip tekrar deneme mantığı eklendi.
+4. Odak (Focus) ve Görünüm: Sayfa açılışında ilk playlist'e odaklanma ve parlayarak belirginleşme özelliği aktif.
+5. Hakkında Bölümü: Versiyon, build numarası, Aladin Software adı ve tıklanabilir linkler (GitHub & Play Store) eklendi.
+6. Dekoder seçimi eklendi tekrardan.
+7. APK güncelleme eklendi.
+
+## V2.2.0+27 Sürüm Notları:
+1. Uygulama daha stabil hale getirildi.

@@ -41,6 +41,9 @@ class MainActivity : FlutterActivity() {
                         "duration" to duration
                     ))
                 }
+                "com.aladin.iptv.player.pro.OPEN_SETTINGS" -> {
+                    methodChannel?.invokeMethod("openSettings", null)
+                }
             }
         }
     }
@@ -92,6 +95,7 @@ class MainActivity : FlutterActivity() {
         val filter = IntentFilter().apply {
             addAction("com.aladin.iptv.player.pro.FAVORITE_TOGGLED")
             addAction("com.aladin.iptv.player.pro.PROGRESS_UPDATE")
+            addAction("com.aladin.iptv.player.pro.OPEN_SETTINGS")
         }
         
         if (android.os.Build.VERSION.SDK_INT >= 33) { // TIRAMISU (Android 13) and above

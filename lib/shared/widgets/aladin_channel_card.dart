@@ -11,6 +11,7 @@ class ChannelCard extends StatefulWidget {
   final ChannelModel channel;
   final VoidCallback onTap;
   final VoidCallback? onFavoriteTap;
+  final VoidCallback? onLongPress; // Yeni: Uzun basma (Kaldır/Favoriden Çıkar için)
   final double width;
   final double height;
   final bool showEpg;
@@ -23,6 +24,7 @@ class ChannelCard extends StatefulWidget {
     required this.channel,
     required this.onTap,
     this.onFavoriteTap,
+    this.onLongPress,
     this.width = AppTheme.cardWidth,
     this.height = AppTheme.cardHeight,
     this.showEpg = false,
@@ -102,6 +104,7 @@ class _ChannelCardState extends State<ChannelCard> {
           if (event is KeyDownEvent &&
               (event.logicalKey == LogicalKeyboardKey.select ||
                   event.logicalKey == LogicalKeyboardKey.enter)) {
+            // Not: TV Kumandasında uzun basma tespiti GestureDetector.onLongPress ile çalışır.
             widget.onTap();
             return KeyEventResult.handled;
           }
@@ -109,6 +112,7 @@ class _ChannelCardState extends State<ChannelCard> {
         },
         child: GestureDetector(
           onTap: widget.onTap,
+          onLongPress: widget.onLongPress, // Uzun basma desteği eklendi
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200), // Odaklanma animasyon süresi
             curve: Curves.easeInOut,

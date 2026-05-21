@@ -14,28 +14,70 @@ import 'shared/theme/aladin_app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // 🔧 TV UYUMLU: Üretim modunda shadow ve render hatalarını sustur
+
+  // ── Hata Yönetimi ─────────────────────────────────────────────────────────
+  // Bilinen zararsız render hataları → sessizce yut (SizedBox.shrink).
+  // Gerçek hatalar → logla + release'de TV'ye yakışır minimal hata widget'ı göster.
+  // Debug modda orijinal Flutter kırmızı ekran korunur.
   ErrorWidget.builder = (FlutterErrorDetails details) {
-    if (details.exception.toString().contains('blur radius')) {
+    final msg = details.exception.toString();
+
+    // ── Sessizce susturulan bilinen zararsız hatalar ───────────────────────
+    final silentPatterns = ['blur radius', 'blurRadius', 'RenderFlex overflowed'];
+    if (silentPatterns.any(msg.contains)) {
       return const SizedBox.shrink();
     }
+
+    // ── Loglama (release dahil) ────────────────────────────────────────────
+    // Hata tipini ayırt etmek için prefix kullanıyoruz.
+    final isLayoutError = msg.contains('RenderBox') || msg.contains('layout');
+    final isStateError  = msg.contains('setState') || msg.contains('State');
+    final prefix = isLayoutError ? '[Layout]'
+                 : isStateError  ? '[State]'
+                 : '[Widget]';
+    debugPrint('┌─ AladinError $prefix ──────────────────────────');
+    debugPrint('│ ${details.exception}');
+    debugPrint('│ ${details.context ?? "no context"}');
+    if (!kReleaseMode) debugPrint('│ ${details.stack}');
+    debugPrint('└────────────────────────────────────────────────');
+
+    // ── Release: TV'ye yakışır minimal hata arayüzü ───────────────────────
     if (kReleaseMode) {
-      debugPrint('Flutter Error: ${details.exception}');
-      return const SizedBox.shrink();
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white12),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: const Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.white38, size: 28),
+            SizedBox(height: 6),
+            Text(
+              'Görüntülenemiyor',
+              style: TextStyle(color: Colors.white38, fontSize: 11),
+            ),
+          ],
+        ),
+      );
     }
+
+    // ── Debug: Standart Flutter kırmızı ekran ─────────────────────────────
     return ErrorWidget(details.exception);
   };
-  
+
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
   ));
-  
+
   // 🎬 TV PERFORMANS: Image cache'i TV için optimize et
-  PaintingBinding.instance.imageCache.maximumSize = 50; 
+  PaintingBinding.instance.imageCache.maximumSize = 50;
   PaintingBinding.instance.imageCache.maximumSizeBytes = 50 << 20; // 50 MB
-  
+
   runApp(const AladinApp());
 }
 
@@ -82,6 +124,8 @@ class _AladinAppState extends State<AladinApp>
             (dur / 1000).round(),
           );
         }
+      } else if (call.method == 'openSettings') {
+        AppState.instance.navigateToSettings();
       }
       return null;
     });
@@ -95,13 +139,16 @@ class _AladinAppState extends State<AladinApp>
 
 
   Future<void> _boot() async {
-    // ⚡ PERFORMANS: Başlangıç işlemlerini paralel çalıştırarak açılış hızını artır
+    // ⚡ BOOT SIRASI (Madde 3 — Race Condition fix):
+    // AladinPrefs mutlaka ilk önce tamamlanmalı; AppState.init() ve IsarService
+    // ona bağlı olduğundan sıralı başlatma zorunlu. Isar paralel başlatılabilir
+    // çünkü Prefs'e bağımlı değil.
+    await AladinPrefs.instance.load();
     await Future.wait([
-      AladinPrefs.instance.load(),
       IsarService.instance.init(),
-      AppState.instance.init(),
+      AppState.instance.init(), // Artık içinde load() yok, sadece okuma yapıyor
     ]);
-    
+
     await AppState.instance.loadPlaylists();
 
     final hasLang = AladinPrefs.instance.getString('lang') != null;
